@@ -658,6 +658,12 @@ body.ptr .check:focus,body.ptr .check:focus-visible{outline:none;box-shadow:none
 .mc.sel{outline:3px solid var(--ink);outline-offset:-3px}
 .mday{margin-top:10px}
 [hidden]{display:none!important}
+
+/* Paket 2b Trainer */
+.tabbar.trbar{grid-template-columns:repeat(4,1fr)}.trbar .tab{font-size:11px}
+.trlist li{padding:8px 0;border-bottom:1px solid var(--line);min-height:44px;align-items:center}.trlist li:last-child{border:0}
+.trrow{padding:6px 0;align-items:center;gap:8px}.trday .stl,.trprev .stl,.card .stl{margin:10px 0 4px;font-size:13px;font-weight:600;color:var(--ink2)}
+.trprev{border-style:dashed;opacity:.92}.trnever{background:#fef2f2;border-color:#fecaca}.trsim{margin-bottom:8px}.trqr{border:1px solid var(--line);border-radius:8px;flex:none}.trinv code{font-size:12px;word-break:break-all}
 </style>
 </head>
 <body>
@@ -3713,6 +3719,7 @@ var Illus = (function () {
   // 1.2: Scrollposition je Ansicht (Tab/Unterseite) – beim Neuzeichnen exakt erhalten, nie animiert
   function viewKey() { return ui.view + '|' + ui.tab + '|' + (ui.view === 'parent' ? (ui.psub || '') : (ui.sub || '')) + '|' + (ui.tab === 'woche' ? ui.weekView : ''); }
   function render() {
+    if (ui.trv) { renderTrainer(); return; } // Paket 2b: simulierter Trainer-Bereich
     if (!S) { renderOnboarding(); return; }
     var at = E.ageTransition(S); if (at.state !== S) { S = at.state; save(); }
     var mainEl = document.getElementById('main'), key = viewKey();
@@ -5304,6 +5311,144 @@ var Illus = (function () {
       '<section class="card"><h3>So geht’s</h3><ol class="steps">' + r.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></section>';
     return shell(r.name, b, '', true);
   }
+  // =====================================================================
+  // Paket 2b: Simulierter Trainer-Bereich (Demo-Team, nur Prototyp). Sie-Form.
+  // Rechte-Matrix (CLAUDE.md §4): Grundsicht = nur Teilnahme; Schmerz, Gründe, Gesundheit, Annahme von Hinweisen nie.
+  // Die Demo-Daten enthalten absichtlich Felder, die der Trainer-Bereich NIE rendert (Negativtest).
+  // =====================================================================
+  var TR_MIN_GROUP = 8;            // [FB] Mindestgröße Gruppenansicht (K§4.10)
+  var TR_CONTENT = [['technik', 'Technik'], ['spiel', 'Spielform/Taktik'], ['schuss', 'Torschuss'], ['schnell', 'Schnelligkeit'], ['ausdauer', 'Ausdauer'], ['athletik', 'Athletik/Sprünge']];
+  var TR_REASONS = [['kondition', 'Passt zu Ihrem Teamtraining diese Woche', 'Das passt zum Teamtraining dieser Woche.'], ['technik', 'Daran hat Ihr Team gerade gearbeitet', 'Daran hat euer Team gerade gearbeitet.'], ['alter', 'Passt zu Ihrer Altersklasse', 'Das passt zu deiner Altersklasse.']];
+  var TR_MEET = ['Sportplatz Eingang', 'Kabinen', 'Vereinsheim', 'Parkplatz']; // Auswahl statt Freitext; nie in .ics/Push
+  var TR_DEMO_SQUAD = [
+    { n: 'Ben K.', part: true, pain: 'Knie', skip: 'Schule', accepted: true }, { n: 'Mia S.', part: true, pain: null, skip: null, accepted: false },
+    { n: 'Leon M.', part: false, pain: 'Fuß', skip: 'Arzttermin', accepted: true }, { n: 'Emma H.', part: true, pain: null, skip: null, accepted: true },
+    { n: 'Finn B.', part: null }, { n: 'Lena W.', part: true }, { n: 'Noah T.', part: false, skip: 'keine Lust' }, { n: 'Sofia R.', part: null },
+    { n: 'Paul D.', part: true }, { n: 'Hannah L.', part: true }, { n: 'Jonas P.', part: null }, { n: 'Clara F.', part: false }, { n: 'Elias G.', part: true }, { n: 'Mila A.', part: null }];
+  function trNew() {
+    return { tab: 'woche', team: { name: 'U15 Demo-Team', age: 'U15', days: [1, 3], times: { 1: '17:30', 3: '17:30' } }, week: {}, dates: [], form: null, picked: null, sent: {}, sharers: 6, invite: false };
+  }
+  function trAudience() { return 'an die Eltern; Jugendliche ab 16 können selbst beitreten'; } // Alter je Person, nicht je Altersklasse [FA]
+  function trAsIs(tv) { return { chips: ['technik', 'spiel'], int: 'mittel', dur: 90, out: false }; }
+  function trChips(arr, act, key, sel, multi) {
+    return '<div class="chips">' + arr.map(function (o) { return '<button class="chip sm" aria-pressed="' + (multi ? sel.indexOf(o[0]) >= 0 : sel === o[0]) + '" data-a="' + act + '" data-k="' + key + '" data-v="' + o[0] + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>';
+  }
+  function trWeekCard(tv, wd) {
+    var w = tv.week[wd] || { chips: [], int: null, dur: null, out: false }, lab = E.DAY_NAMES[wd] + ' · ' + (tv.team.times[wd] || '') + ' Uhr';
+    var b = '<section class="card trday"><div class="row between"><h3>' + esc(lab) + '</h3>' +
+      '<button class="chip sm" aria-pressed="' + !!w.out + '" data-a="tr-out" data-v="' + wd + '">Fällt aus</button></div>';
+    if (w.out) return b + '<p class="sub" style="margin:6px 0 0">Eingetragen: fällt aus. Wir planen für Ihre Spieler dann keinen Ersatz im Teamtraining.</p></section>';
+    return b + '<p class="stl">Inhalte (1–2)</p>' + trChips(TR_CONTENT, 'tr-chip', wd, w.chips, true) +
+      '<p class="stl">Intensität</p>' + trChips([['leicht', 'leicht'], ['mittel', 'mittel'], ['hart', 'hart']], 'tr-int', wd, w.int, false) +
+      '<p class="stl">Dauer</p>' + trChips([['60', '60 Min.'], ['75', '75 Min.'], ['90', '90 Min.'], ['105', '105 Min.']], 'tr-dur', wd, w.dur == null ? null : String(w.dur), false) + '</section>';
+  }
+  function trViewWoche(tv) {
+    var h = '<h1>Woche</h1><p class="sub">Dauert weniger als 1 Minute: pro Teamtraining 1–2 Inhalte, Intensität und Dauer.</p>' +
+      '<section class="banner info">' + IC.info + '<div>Wofür das gut ist: Ihre Spieler bekommen so passende Zusatzeinheiten – z. B. nach Sprints kein Sprinttraining am Folgetag. <b>Im Prototyp wirken Ihre Einträge noch nicht auf einen Spieler-Plan</b>, im Pilot schon.</div></section>' +
+      '<button class="btn block mt12" data-a="tr-asis">Wie immer ✓</button><p class="note">Übernimmt Ihre Wochenvorlage (Technik, Spielform/Taktik, mittel, 90 Min.) für alle noch leeren Trainings.</p>';
+    tv.team.days.slice().sort().forEach(function (wd) { h += trWeekCard(tv, wd); });
+    h += '<h2 class="mt16" style="font-size:18px">Termine</h2>';
+    if (!tv.dates.length) h += '<p class="sub">Noch keine Termine eingetragen.</p>';
+    tv.dates.forEach(function (d, i) {
+      h += '<section class="card flat"><div class="row between"><div><b>' + esc(d.kind) + '</b> · ' + esc(d.date || 'Datum offen') + (d.kind === 'Spielfrei' ? '' : ' · ' + esc(d.time || '') + ' Uhr') + '<br><span class="sub">' + (d.kind === 'Spielfrei' ? 'kein Spiel' : (d.home ? 'Heim' : 'Auswärts') + (d.meet ? ' · Treffpunkt: ' + esc(d.meet) : '')) + '</span></div><button class="btn ghost sm" data-a="tr-date-del" data-v="' + i + '" aria-label="Termin löschen">Löschen</button></div></section>';
+    });
+    var f = tv.form;
+    if (!f) return h + '<button class="btn sec block mt12" data-a="tr-date-open">+ Termin anlegen</button>';
+    h += '<section class="card"><h3>Neuer Termin</h3>' + trChips([['Spiel', 'Spiel'], ['Turnier', 'Turnier'], ['Spielfrei', 'Spielfrei']], 'tr-form', 'kind', f.kind, false) +
+      '<label class="f" for="trDate">Datum</label><input id="trDate" type="date" data-bind="trv.date" value="' + esc(f.date) + '">' +
+      (f.kind === 'Spielfrei' ? '' : '<label class="f" for="trTime">Anstoß</label><input id="trTime" type="time" data-bind="trv.time" value="' + esc(f.time) + '">' +
+        '<p class="stl">Treffpunkt</p>' + trChips(TR_MEET.map(function (m) { return [m, m]; }), 'tr-form', 'meet', f.meet, false) + '<p class="note">Der Treffpunkt bleibt in der App und steht nicht in Kalenderdateien.</p>' +
+        trChips([['heim', 'Heim'], ['aus', 'Auswärts']], 'tr-form', 'home', f.home ? 'heim' : 'aus', false)) +
+      '<div class="row mt12"><button class="btn" style="flex:1" data-a="tr-date-save">Eintragen</button><button class="btn ghost" data-a="tr-date-cancel">Abbrechen</button></div></section>';
+    return h;
+  }
+  function trViewTeam(tv) {
+    var t = tv.team, n = tv.sharers, h = '<h1>' + esc(t.name) + '</h1><p class="sub">14 Spieler:innen (erfundene Demo-Namen).</p>';
+    // Grundsicht: einziges Einzelfeld = Teilnahme am Teamtraining. „nicht geteilt“ und „keine Daten“ sind identisch (null).
+    h += '<section class="card"><h3>Grundsicht: Teilnahme am letzten Teamtraining</h3><p class="note" style="margin-top:4px">Das ist das einzige Einzelfeld, das Sie sehen. Wer keine Angaben macht oder die App nicht nutzt, sieht gleich aus.</p><ul class="plain trlist mt8">';
+    TR_DEMO_SQUAD.forEach(function (p) { h += '<li class="row between"><span>' + esc(p.n) + '</span><span class="trp">' + (p.part === true ? '<b aria-label="war dabei">✓</b>' : p.part === false ? '<b aria-label="war nicht dabei">–</b>' : '<span class="sub">keine Angaben</span>') + '</span></li>'; });
+    h += '</ul></section>';
+    h += '<section class="card trprev"><div class="row between"><h3>Teamsicht</h3><span class="badge par">Vorschau · nach dem Pilot</span></div>' +
+      '<p class="sub" style="margin:4px 0 8px">Wochenwert für Belastung und Müdigkeit des ganzen Teams – nur als Stufe, nur ab ' + TR_MIN_GROUP + ' Teilenden, nie einzeln.</p>';
+    if (n >= TR_MIN_GROUP) h += '<div class="row" style="gap:16px"><span>Belastung: <b>mittel</b></span><span>Müdigkeit: <b>niedrig</b></span></div>';
+    else h += '<p><b>Noch nicht genug Angaben.</b></p>';
+    h += '<button class="btn ghost sm mt8" data-a="tr-sharers">Demo: Zahl der Teilenden ändern</button></section>';
+    h += '<section class="card trnever"><h3>Was Sie nie sehen</h3><ul class="plain mt8"><li>Schmerzen</li><li>Gründe fürs Fehlen</li><li>Ernährung</li><li>Einzelwerte (erst nach dem Pilot, nur mit Zustimmung der Spieler:in, unter 16 auch der Eltern)</li><li>Ob Spieler:innen Ihre Hinweise annehmen</li></ul>' +
+      '<p class="note">Außerdem: keine Nachrichten an Kinder, keine Ranglisten, kein Zuweisen von Training.</p></section>';
+    h += '<section class="card"><h3>Team einrichten</h3><p class="stl">Altersklasse</p>' + trChips(E.AGES.map(function (a) { return [a, a]; }), 'tr-age', 'age', t.age, false) +
+      '<p class="stl">Trainingstage</p>' + trChips(E.DAY_SHORT.map(function (d, i) { return [String(i), d]; }), 'tr-day', 'day', t.days.map(String), true) +
+      t.days.slice().sort().map(function (wd) { return '<label class="f" for="trT' + wd + '">' + esc(E.DAY_NAMES[wd]) + ' – Uhrzeit</label><input id="trT' + wd + '" type="time" data-bind="trv.t' + wd + '" value="' + esc(t.times[wd] || '17:30') + '">'; }).join('') +
+      '<button class="btn sec block mt12" data-a="tr-invite">Einladungslink erstellen</button>';
+    if (tv.invite) h += '<div class="trinv mt12"><p class="sub" style="margin:0 0 6px">Einladung ' + trAudience(t.age) + ' (simuliert):</p><div class="row" style="gap:12px">' + trQr() + '<code>fokus11.example/team/DEMO-7K4Q</code></div></div>';
+    return h + '</section>';
+  }
+  function trQr() { // reines Platzhalter-Muster, kein echter QR-Code
+    var s = '<svg class="trqr" viewBox="0 0 9 9" width="72" height="72" role="img" aria-label="QR-Code (simuliert)"><rect width="9" height="9" fill="#fff"/>';
+    for (var y = 0; y < 9; y++) for (var x = 0; x < 9; x++) if ((x * 7 + y * 13 + x * y) % 3 === 0 || (x < 3 && y < 3 && (x === 0 || y === 0 || x === 2 || y === 2))) s += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="#0f172a"/>';
+    return s + '</svg>';
+  }
+  function trViewNotes(tv) {
+    var foci = E.fociFor(tv.team.age, null), h = '<h1>Hinweise an Spieler</h1><p class="sub">Schlagen Sie pro Spieler:in bis zu 3 Schwerpunkte vor, mit Begründung. Es ist ein Vorschlag; die Spieler:in entscheidet. Ob er angenommen wird, sehen Sie nicht.</p><ul class="plain">';
+    TR_DEMO_SQUAD.forEach(function (p, i) {
+      h += '<li class="row between trrow"><span>' + esc(p.n) + (tv.sent[i] ? ' <span class="sub">· gesendet (simuliert)</span>' : '') + '</span><button class="btn sec sm" data-a="tr-pick" data-v="' + i + '" aria-expanded="' + (tv.picked && tv.picked.i === i) + '">' + (tv.sent[i] ? 'Ändern' : 'Hinweis') + '</button></li>';
+      if (tv.picked && tv.picked.i === i) {
+        var pk = tv.picked;
+        h += '<li class="card flat"><p class="stl">Schwerpunkte (bis 3)</p>' + trChips(foci.map(function (f) { return [f.id, f.label]; }), 'tr-nf', 'f', pk.f, true) +
+          '<p class="stl">Begründung</p>' + trChips(TR_REASONS, 'tr-nr', 'r', pk.r, false) + (pk.r ? '<p class="note">So lesen es die Spieler:innen (du-Form): „' + esc(TR_REASONS.filter(function (x) { return x[0] === pk.r; })[0][2]) + '“ Als Vorschlag, die Entscheidung liegt bei ihnen.</p>' : '') +
+          '<button class="btn block mt12" data-a="tr-send"' + (pk.f.length && pk.r ? '' : ' disabled') + '>Senden</button></li>';
+      }
+    });
+    return h + '</ul><p class="note">Hinweise gehen als Vorschlag an die Spieler:in (Eltern: Regel offen). Direktnachrichten an Kinder gibt es nicht.</p>';
+  }
+  function trViewSettings() {
+    return '<h1>Einstellungen</h1><section class="card flat"><h3>Konto</h3><p class="sub" style="margin:4px 0 0">Trainerkonto: <b>vom Verein bestätigt (simuliert)</b>. Im Pilot sehen Sie erst etwas, wenn Ihr Verein bestätigt hat.</p></section>' +
+      '<section class="card flat"><h3>Verhaltenskodex (kurz)</h3><ul class="plain mt8"><li>Ich nutze Fokus11 nur für das Teamtraining meiner Gruppe.</li><li>Ich schreibe Kindern keine Nachrichten und frage nicht nach Gesundheitsdaten.</li><li>Ich vergleiche Spieler:innen nicht und führe keine Ranglisten.</li><li>Bei Sorgen um ein Kind wende ich mich an den Verein.</li></ul></section>' +
+      '<section class="card flat"><h3>Führungszeugnis</h3><p class="sub" style="margin:4px 0 0">Das erweiterte Führungszeugnis prüft Ihr Verein – nicht Fokus11.</p></section>' +
+      '<section class="card flat"><h3>Datenschutz kurz</h3><p class="sub" style="margin:4px 0 0">Sie sehen die Teilnahme am Teamtraining. Einzelwerte erst nach dem Pilot und nur mit Zustimmung der Spieler:in (unter 16 auch der Eltern); bis dahin nur Gruppenwerte ab ' + TR_MIN_GROUP + ' Personen. Schmerzen sehen Sie nie. Im Prototyp werden keine Daten übertragen.</p></section>';
+  }
+  function renderTrainer() {
+    var tv = ui.trv, T = [['woche', 'Woche', IC.woche], ['team', 'Team', IC.whistle], ['hinweise', 'Hinweise', IC.info], ['einst', 'Einstellungen', IC.profil]];
+    var main = { woche: trViewWoche, team: trViewTeam, hinweise: trViewNotes, einst: trViewSettings }[tv.tab](tv), mEl = document.getElementById('main');
+    var keep = mEl && renderTrainer.tab === tv.tab ? mEl.scrollTop : 0;
+    $app.innerHTML = '<div class="topbar"><div class="logo">Fokus<b>11</b> <span class="badge par">Trainer · simuliert</span></div><div class="row" style="gap:6px"><button class="helpbtn" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + 'Hilfe</button><button class="btn ghost sm" data-a="tr-exit">Zum Start</button></div></div>' +
+      '<main id="main" tabindex="-1"><section class="banner info trsim">' + IC.info + '<div><b>Prototyp, simuliert.</b> Demo-Team mit erfundenen Namen. Trainerkonto: vom Verein bestätigt (simuliert).</div></section>' + main + '</main>' +
+      '<nav class="tabbar trbar" role="tablist" aria-label="Trainer-Navigation">' + T.map(function (x) { return '<button class="tab" role="tab" aria-selected="' + (tv.tab === x[0]) + '" data-a="tr-tab" data-v="' + x[0] + '"><span class="ti">' + x[2] + '</span>' + x[1] + '</button>'; }).join('') + '</nav>';
+    mEl = document.getElementById('main'); if (mEl) mEl.scrollTop = keep; renderTrainer.tab = tv.tab;
+    if (ui.overlay) renderOverlay(); else $ov.innerHTML = '';
+  }
+  function trAction(a, v, k) {
+    if (a === 'tr-enter') { ui.trv = trNew(); renderTrainer.tab = null; renderTrainer(); return; }
+    var tv = ui.trv, t = tv.team, w;
+    switch (a) {
+      case 'tr-exit': ui.trv = null; render(); return;
+      case 'tr-tab': tv.tab = v; tv.form = null; tv.picked = null; break;
+      case 'tr-chip': w = tv.week[k] = tv.week[k] || { chips: [], int: null, dur: null, out: false }; if (w.chips.indexOf(v) >= 0) w.chips.splice(w.chips.indexOf(v), 1); else { w.chips.push(v); if (w.chips.length > 2) w.chips.shift(); } break;
+      case 'tr-int': w = tv.week[k] = tv.week[k] || { chips: [], int: null, dur: null, out: false }; w.int = w.int === v ? null : v; break;
+      case 'tr-dur': w = tv.week[k] = tv.week[k] || { chips: [], int: null, dur: null, out: false }; w.dur = w.dur === +v ? null : +v; break;
+      case 'tr-out': w = tv.week[v] = tv.week[v] || { chips: [], int: null, dur: null, out: false }; w.out = !w.out; break;
+      case 'tr-asis': t.days.forEach(function (d) { var x = tv.week[d]; if (!x || (!x.out && !x.chips.length && !x.int && !x.dur)) tv.week[d] = trAsIs(tv); }); toast('Wochenvorlage übernommen (simuliert).'); break;
+      case 'tr-date-open': tv.form = { kind: 'Spiel', date: '', time: '10:00', meet: '', home: true }; break;
+      case 'tr-date-cancel': tv.form = null; break;
+      case 'tr-form': if (k === 'kind') tv.form.kind = v; else if (k === 'meet') tv.form.meet = tv.form.meet === v ? '' : v; else tv.form.home = v === 'heim'; break;
+      case 'tr-date-save': if (!tv.form.date) { toast('Bitte ein Datum wählen.'); return; } tv.dates.push(tv.form); tv.dates.sort(function (x, y) { return x.date < y.date ? -1 : 1; }); tv.form = null; toast('Termin eingetragen (simuliert).'); break;
+      case 'tr-date-del': tv.dates.splice(+v, 1); break;
+      case 'tr-age': t.age = v; t.name = v + ' Demo-Team'; break;
+      case 'tr-day': var d = +v, ix = t.days.indexOf(d); if (ix >= 0) { if (t.days.length > 1) t.days.splice(ix, 1); } else { t.days.push(d); t.times[d] = t.times[d] || '17:30'; } break;
+      case 'tr-invite': tv.invite = true; break;
+      case 'tr-sharers': tv.sharers = tv.sharers === 6 ? 8 : tv.sharers === 8 ? 7 : 8; // Grenze 8/7 prüfen break;
+      case 'tr-pick': tv.picked = tv.picked && tv.picked.i === +v ? null : (tv.sent[+v] ? { i: +v, f: tv.sent[+v].f.slice(), r: tv.sent[+v].r } : { i: +v, f: [], r: null }); break;
+      case 'tr-nf': var pf = tv.picked.f, j = pf.indexOf(v); if (j >= 0) pf.splice(j, 1); else if (pf.length < 3) pf.push(v); else toast('Höchstens 3 Schwerpunkte.'); break;
+      case 'tr-nr': tv.picked.r = v; break;
+      case 'tr-send': tv.sent[tv.picked.i] = { f: tv.picked.f.slice(), r: tv.picked.r }; tv.picked = null; toast('Hinweis gesendet (simuliert).'); break;
+    }
+    renderTrainer();
+    var f = document.querySelector('[data-a="' + a + '"][data-k="' + k + '"][data-v="' + v + '"]') || document.querySelector('[data-a="' + a + '"][data-v="' + v + '"]'); if (f && a !== 'tr-tab') f.focus({ preventScroll: true });
+  }
+  document.addEventListener('input', function (e) {
+    var b = e.target.getAttribute && e.target.getAttribute('data-bind'); if (!b || b.indexOf('trv.') !== 0 || !ui.trv) return;
+    var key = b.slice(4), tv = ui.trv;
+    if (/^t\d$/.test(key)) tv.team.times[+key.slice(1)] = e.target.value; else if (tv.form) tv.form[key] = e.target.value;
+  });
 
   // =====================================================================
   // ONBOARDING (A6 / Entscheidung 5): zwei Eingänge, Eltern legen Familie an (Standard unter 16) oder Kind startet als Vorschau
@@ -5480,11 +5625,12 @@ var Illus = (function () {
         '<p class="note startnote">Unter 16 legt am besten ein Elternteil die Familie an und lädt dich ein.</p>';
       showNext = false;
     } else if (st === 'trainer') {
-      // R5d: nur Erklärseite – kein Trainer-Dashboard, keine Simulation von Sichten
+      // R5d: Erklärseite; ab Paket 2b zusätzlich simulierter Trainer-Bereich (Demo)
       b = '<h1>Trainer:in</h1><p class="sub">Fokus11 plant das Zusatztraining Ihrer Spieler:innen um Ihr Teamtraining herum. Dafür hilft uns, was im Teamtraining passiert.</p>' +
-        '<section class="banner info trpilot">' + IC.info + '<div><b>Kommt im Pilot.</b> Im Prototyp gibt es noch keinen Trainer-Zugang.</div></section>' +
+        '<section class="banner info trpilot">' + IC.info + '<div><b>Kommt im Pilot.</b> Im Prototyp können Sie den Trainer-Bereich nur simuliert ansehen.</div></section>' +
+        '<button class="btn block mt12" data-a="tr-enter">Trainer-Bereich ansehen (Demo)</button>' +
         '<section class="card flat"><h3>Was Sie eintragen</h3><ul class="plain mt8"><li>Teamtraining-Inhalte: Sprints, Sprünge, harte Ausdauer – dann planen wir am selben und am nächsten Tag nichts davon dazu.</li><li>Termine: Training, Spiele, Turniere, Ausfälle.</li><li>Dauert weniger als 1 Minute pro Woche.</li></ul></section>' +
-        '<section class="card flat"><h3>Was Sie sehen</h3><ul class="plain mt8"><li>Grundsicht: nur, ob jemand beim Teamtraining war.</li><li>Mehr nur mit Zustimmung der Spieler:innen (unter 16 auch der Eltern) – und nur als Gruppe ab 8 Personen.</li><li>Schmerzen: nie. Gesundheitsangaben nie einzeln – Gruppenwerte nur ab 8 Personen und mit Zustimmung.</li><li>Keine Nachrichten an Kinder, keine Aufgaben zuweisen.</li></ul></section>' +
+        '<section class="card flat"><h3>Was Sie sehen</h3><ul class="plain mt8"><li>Grundsicht: nur, ob jemand beim Teamtraining war.</li><li>Einzelwerte erst nach dem Pilot und nur mit Zustimmung der Spieler:in (unter 16 auch der Eltern); bis dahin nur Gruppe ab 8 Personen.</li><li>Schmerzen: nie. Gesundheitsangaben nie einzeln – Gruppenwerte nur ab 8 Personen und mit Zustimmung.</li><li>Keine Nachrichten an Kinder, keine Aufgaben zuweisen.</li></ul></section>' +
         '<section class="card flat"><h3>Vereinsbestätigung</h3><p class="sub" style="margin:4px 0 0">Bevor Sie etwas sehen, bestätigt Ihr Verein, dass Sie Trainer:in des Teams sind. Das erweiterte Führungszeugnis prüft der Verein – nicht Fokus11.</p></section>' +
         '<button class="btn ghost block mt12" data-a="ob-back">Zurück</button>';
       showNext = false;
@@ -5636,7 +5782,7 @@ var Illus = (function () {
   // =====================================================================
   function getDraft() { return ui.ob ? ui.ob.draft : ui.edit; }
   function rerender() { if (ui.ob) renderOnboarding(); else renderOverlay(); }
-  function closeOv() { ui.ovScroll = {}; stopTimer(); ui.run = null; ui.overlay = null; ui.rate = null; ui.flow = null; ui.review = null; ui.pain = null; ui.absence = null; ui.act = null; ui.ev = null; ui.inj = null; ui.clr = null; if (S) render(); else renderOnboarding(); }
+  function closeOv() { ui.ovScroll = {}; stopTimer(); ui.run = null; ui.overlay = null; ui.rate = null; ui.flow = null; ui.review = null; ui.pain = null; ui.absence = null; ui.act = null; ui.ev = null; ui.inj = null; ui.clr = null; if (S || ui.trv) render(); else renderOnboarding(); }
   function startRun(drills, basics) { ui.run = { drills: drills.slice(), i: 0, left: drills[0].min * 60, running: false, status: {}, basics: !!basics, pre: !basics }; ui.overlay = 'session'; renderOverlay(); }
   function apply(r, title) { if (r.state === S && r.changes.length) { toast(r.changes[0].text); return false; } showResult(r, title); return true; }
   function filterFocus(P) { var al = E.fociFor(P.age, P.position).map(function (f) { return f.id; }); P.focus = P.focus.filter(function (f) { return al.indexOf(f) >= 0; }); if (!P.focus.length) P.focus = [al.indexOf('passen') >= 0 ? 'passen' : al[0]]; }
@@ -5658,6 +5804,7 @@ var Illus = (function () {
     if (!el) { var tr = e.target.closest('.trow'), sws = tr ? tr.querySelectorAll('.switch[data-a]') : []; if (sws.length === 1) el = sws[0]; }
     if (!el || el.disabled) return;
     var a = el.getAttribute('data-a'), v = el.getAttribute('data-v'), k = el.getAttribute('data-k'), t = S ? S.today : 0, r, P;
+    if (a.indexOf('tr-') === 0 && (ui.trv || a === 'tr-enter')) { trAction(a, v, k); return; } // Paket 2b
     if (a === 'past-phases') { ui.pastPhases = !ui.pastPhases; return; }
     if (a === 'tog-food') { ui.openFood = !ui.openFood; return; }
     if (a === 'tog-hints') { ui.openHints = !ui.openHints; return; }
@@ -5858,7 +6005,7 @@ var Illus = (function () {
         if (ui.overlay === 'bag' && ui.bagReturn) { ui.overlay = ui.bagReturn; ui.bagReturn = null; lastOverlay = null; render(); break; }
         if (ui.overlay === 'event' && ui.evReturn) { var er = ui.evReturn; ui.evReturn = null; ui.ev = null; ui.overlay = er; renderOverlay(); break; }
         if (ui.overlay === 'absence' && ui.absReturn) { ui.absReturn = null; ui.absence = null; ui.overlay = 'add'; renderOverlay(); break; }
-        if (ui.overlay === 'help' && ui.helpReturn) { ui.overlay = ui.helpReturn; ui.helpReturn = null; lastOverlay = null; if (S) render(); else renderOverlay(); break; } ui.helpReturn = null; if (ui.overlay === 'act' && ui.act && ui.act.returnTo) { var rt = ui.act.returnTo; ui.overlay = rt; ui.act = null; if (rt !== 'add') lastOverlay = null; renderOverlay(); break; } closeOv(); break;
+        if (ui.overlay === 'help' && ui.helpReturn) { ui.overlay = ui.helpReturn; ui.helpReturn = null; lastOverlay = null; if (S || ui.trv) render(); else renderOverlay(); break; } ui.helpReturn = null; if (ui.overlay === 'act' && ui.act && ui.act.returnTo) { var rt = ui.act.returnTo; ui.overlay = rt; ui.act = null; if (rt !== 'add') lastOverlay = null; renderOverlay(); break; } closeOv(); break;
       case 'to-week': ui.overlay = null; ui.tab = 'woche'; ui.weekView = 'woche'; ui.view = 'player'; render(); break;
       case 'go-month': ui.tab = 'woche'; ui.weekView = 'monat'; ui.monthOff = 0; render(); break;
       case 'day': ui.dayDetail = +v; ui.daySwap = null; ui.ovScroll.day = 0; ui.overlay = 'day'; renderOverlay(); break;
