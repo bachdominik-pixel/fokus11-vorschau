@@ -589,6 +589,18 @@ details.hints[open]>summary::after,details.faq[open]>summary::after{transform:ro
 .rolehalf .rs{min-height:2.7em;display:flex;align-items:center;justify-content:center}
 .rbtn{display:block;width:100%;margin-top:8px;padding:10px 6px;border-radius:12px;background:#fff;color:#14532d;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
 @media (max-width:360px){.rolewrap{padding:10px 8px 12px}.roleq{font-size:17px}.rbtn{font-size:14.5px;padding:9px 4px}}
+/* R5c: Start in zwei Schritten, Eltern-Prüfung, Einladung */
+.ob .gobtn{margin-top:18px;min-height:52px;font-size:17px}
+.obkicker{font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ink2);text-align:center;margin:6px 0 0}
+.rolewrap h1.roleq{font-size:19px;line-height:1.25}
+.pverr{color:#b91c1c;font-weight:600;margin:8px 0 0}
+.pvcode{font-family:var(--head);letter-spacing:2px;font-size:16px}
+.pvok{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#15803d;margin:4px 0 6px}
+.pvok svg{width:16px;height:16px;flex:none}
+.invitebox{margin-top:12px}
+.simbox{margin-top:12px;padding:10px;border:1px dashed var(--line);border-radius:14px}
+.idcard .idstat{white-space:nowrap}
+.pvok svg *{stroke:#15803d!important}
 </style>
 </head>
 <body>
@@ -2103,7 +2115,9 @@ var Engine = (function () {
   }
   // 2) Morgen-Check: { feel 'gut'|'okay'|'muede', sleep 'genug'|'knapp'|'wenig', soreness 'keiner'|'leicht'|'stark' }
   // Gesundheitsdaten nur mit Einwilligung: unter 16 ohne Elternzustimmung (Vorschau, Weg B) wird nichts gespeichert
-  function healthOk(st) { return !(st.profile.parentConsent === false && under16(st)); }
+  // R5c-QA: unter 16 zählt nur eine Eltern-Zustimmung – „self“ (aus einem früher angegebenen Alter 16+) gilt unter 16 nicht.
+  // (Fehlendes Feld = Altstand/legacy, s. migrate8.)
+  function healthOk(st) { var c = st.profile.parentConsent; return !((c === false || c === 'self') && under16(st)); }
   // 2) Morgen-Check: { feel 'gut'|'okay'|'muede', sleep 'genug'|'knapp'|'wenig', soreness 'keiner'|'leicht'|'stark', team? 'locker'|'normal'|'hart'|'nein' }
   //    team = Anstrengung/Teilnahme am Teamtraining gestern (gebündelt, B6)
   function morningCheck(state, mc) {
@@ -2788,6 +2802,70 @@ var Engine = (function () {
     return { state: st, changes: [{ kind: 'info', text: why }] };
   }
 
+  // ---------- R5c: Eltern-Prüfung (simuliert) – kein Selbst-Freigeben ----------
+  // Gespeichert werden nur drei Ja/Nein-Werte, nie Kontakt, Code oder Geburtsjahr der Eltern.
+  // [FA] „angemessene Überprüfung“ (Art. 8 Abs. 2 DSGVO): reichen Code + Geburtsjahr (+ Ausweis optional)?
+  var PARENT_MIN_AGE = 18;             // Volljährigkeit
+  var PARENT_ADULT_TXT = 'Der Elternbereich ist für Erwachsene.';
+  var CONSENT_NEEDS_TXT = 'Zustimmen können nur Eltern – nach Bestätigung per Code und Geburtsjahr.';
+  function parentVerified(st) { var v = (st.profile.parent || {}).verified || {}; return { contact: v.contact === true, adult: v.adult === true, id: v.id === true }; }
+  // Nur das Jahr ist bekannt: volljährig nur, wenn es auch am 1. Januar schon sicher stimmt (vorsichtig gerechnet)
+  function parentAdultYear(birthY, now) {
+    var y = +birthY, ny = now && typeof now.getFullYear === 'function' ? now.getFullYear() : +now;
+    if (!y || !ny || y > ny) return false;
+    return ny - y - 1 >= PARENT_MIN_AGE;
+  }
+  // R5c-QA: Ablehnung „minderjährig“ bleibt auf diesem Gerät gespeichert (übersteht Neuladen) – danach nur noch „Eltern einladen“
+  function adultRefused(st) { return !!(st && st.profile && st.profile.parent && st.profile.parent.adultRefused); }
+  function refuseParentAdult(state) {
+    var st = clone(state), p = st.profile, v = parentVerified(st); v.adult = false;
+    p.parent = Object.assign({}, p.parent || {}, { verified: v, adultRefused: true }); delete p.parent.legacy;
+    return { state: st, changes: [{ kind: 'info', text: PARENT_ADULT_TXT + ' Auf diesem Gerät geht es nur noch über die Einladung an die Eltern.' }] };
+  }
+  function canGiveConsent(st) { var v = parentVerified(st); return v.contact && v.adult && !adultRefused(st); }
+  function setParentVerified(state, patch) {
+    if (adultRefused(state) && patch && (patch.adult === true || patch.id === true)) return { state: state, changes: [], refused: true, why: PARENT_ADULT_TXT };
+    var st = clone(state), p = st.profile, v = parentVerified(st);
+    ['contact', 'adult', 'id'].forEach(function (k) { if (patch && typeof patch[k] === 'boolean') v[k] = patch[k]; });
+    p.parent = Object.assign({}, p.parent || {}, { verified: v }); delete p.parent.legacy;
+    var why = patch && patch.id ? 'Volljährigkeit ist bestätigt (im Prototyp simuliert). Gespeichert wird nur „volljährig: ja“.' : 'Bestätigung gespeichert – nur als Ja/Nein, ohne Kontakt oder Geburtsjahr.';
+    return { state: st, changes: [{ kind: 'info', text: why }] };
+  }
+  // Plausibilität: Auf dem eigenen Gerät eines Kindes unter 16 wird kein Elternkonto angelegt – stattdessen „Eltern einladen“.
+  // Ausnahme: gemeinsames Eltern-Handy (der Elternbereich bleibt dort gesperrt).
+  function parentSetupHere(st) { return !st || !st.profile || !under16(st) || sharedDevice(st) && !adultRefused(st); }
+  // R5c-QA: Geburtsdatum unter 16 – das Kind kann sich nicht selbst auf 16+ setzen; nach der Eltern-Zustimmung ändern es nur die Eltern.
+  var BIRTH_PARENT_TXT = 'Auf 16 oder älter können das nur deine Eltern ändern – nach ihrer Zustimmung im Elternkonto.';
+  var BIRTH_LOCKED_TXT = 'Deine Eltern haben das Geburtsdatum bestätigt – ändern können sie es im Elternkonto.';
+  var BIRTH_U16_TXT = 'Unter 16 brauchst du die Zustimmung deiner Eltern. Bis dahin ist es eine Vorschau: Morgen-Check, Schmerz und Schlaf speichern wir erst danach.';
+  function birthEditOk(st, birth, byParent) {
+    var a = birth && +birth.m && +birth.y ? ageYears({ birth: { m: +birth.m, y: +birth.y } }, dateOf(st, st.today)) : null;
+    if (a == null) return { ok: false, why: 'Bitte Monat und Jahr wählen.' };
+    if (byParent) return st.profile.parentConsent === true ? { ok: true } : { ok: false, why: CONSENT_NEEDS_TXT };
+    if (!under16(st)) return { ok: true };
+    if (st.profile.parentConsent === true) return { ok: false, why: BIRTH_LOCKED_TXT };
+    return a >= 16 ? { ok: false, why: BIRTH_PARENT_TXT } : { ok: true };
+  }
+  function setBirth(state, birth, byParent) {
+    var chk = birthEditOk(state, birth, byParent); if (!chk.ok) return { state: state, changes: [], refused: true, why: chk.why };
+    var st = clone(state), p = st.profile, now = dateOf(st, st.today), changes = [];
+    p.birth = { m: +birth.m, y: +birth.y }; p.age = ageClassFor(p.birth.y, now);
+    // 16+ hatte selbst eingewilligt, ist laut Korrektur aber unter 16 → Vorschau bis zur Eltern-Zustimmung
+    if (under16(st) && p.parentConsent !== true) {
+      if (p.parentConsent !== false) changes.push({ kind: 'info', text: BIRTH_U16_TXT });
+      p.parentConsent = false; p.account = Object.assign({}, p.account || {}, { mode: 'preview' });
+    }
+    return { state: st, changes: changes };
+  }
+  // Zustimmung unter 16 – nur nach Code + Geburtsjahr der Eltern
+  function giveConsent(state, today) {
+    if (!under16(state)) return { state: state, changes: [], refused: true, why: 'Ab 16 stimmst du selbst zu.' };
+    if (!canGiveConsent(state)) return { state: state, changes: [], refused: true, why: CONSENT_NEEDS_TXT };
+    var st = clone(state), p = st.profile;
+    p.parentConsent = true; p.account = Object.assign({}, p.account || {}, { mode: 'family', parentInvited: true, consentAt: today != null ? today : st.today });
+    return { state: st, changes: [{ kind: 'info', text: 'Ihre Zustimmung ist gespeichert. Ab jetzt berücksichtigt der Plan auch Morgen-Check, Schmerz und Schlaf.' }] };
+  }
+
   // ---------- Jahreszeiten-Hinweise (Pilot: nur Text) ----------
   function seasonHint(st, abs) {
     var m = dateOf(st, abs), mo = m.getMonth(), ph = phaseOf(st, abs), h;
@@ -2822,7 +2900,7 @@ var Engine = (function () {
     var g = posGroup({ position: position }); return (POS_PRIO[g] || []).indexOf(id) >= 0 ? 'oft wichtig für ' + GROUP_LABEL[g] : null;
   }
 
-  var STATE_V = 7;
+  var STATE_V = 8;
   function newState(profile, today, base) {
     if (!profile.place) profile.place = { ort: 'garten', people: 1 };
     if (profile.place.people == null) profile.place = { ort: profile.place.ort || 'garten', people: profile.place.partner ? 2 : 1 };
@@ -2830,6 +2908,13 @@ var Engine = (function () {
     if (!profile.trainTime) profile.trainTime = '16:00';
     if (!profile.notif) profile.notif = notifDefaults(profile.age);
     if (profile.device !== 'shared') profile.device = 'own';
+    var refused0 = adultRefused({ profile: profile });
+    profile.parent = { verified: parentVerified({ profile: profile }) };
+    if (refused0) { profile.parent.adultRefused = true; profile.parent.verified.adult = false; }
+    // R5c: unter 16 gilt eine Zustimmung nur nach Eltern-Prüfung (Code + Geburtsjahr) – sonst Vorschau
+    if (profile.parentConsent === true && under16({ profile: profile, today: today, base: base }) && !canGiveConsent({ profile: profile })) {
+      profile.parentConsent = false; profile.account = Object.assign({}, profile.account || {}, { mode: 'preview' });
+    }
     return { v: STATE_V, base: base || '2026-11-09', profile: profile, today: today, created: today, calibSkip: false, ratings: {}, swaps: {}, easier: {}, mods: {}, pains: [], painLog: [], checkins: [], weekly: [],
       morning: {}, matches: {}, absences: [], sessions: [], done: {}, activities: [], food: {}, notifs: [], skipped: {}, easyStreak: 0, lastChanges: null, patternAdj: {},
       events: [], teamOff: {}, team: {}, place: {}, skipIds: {}, injuries: [], appts: [], teamSkip: {}, offerOn: {}, bag: {} };
@@ -2886,14 +2971,22 @@ var Engine = (function () {
     if (st.profile.device !== 'shared') st.profile.device = 'own';
     return st;
   }
+  // v7 → v8 (R5c): Eltern-Prüfung. Alte Zustimmungen bleiben (keine Daten gehen verloren), gelten aber als „nicht geprüft“ (legacy)
+  function migrate8(o) {
+    var st = clone(o), p = st.profile; st.v = 8;
+    // R5c-QA: Altstände ohne Feld galten früher als „Familie“ – ebenfalls als legacy markieren ([FA]-Frage: neu einholen?)
+    if (!p.parent || !p.parent.verified) p.parent = { verified: { contact: false, adult: false, id: false }, legacy: p.parentConsent === true || p.parentConsent == null };
+    return st;
+  }
   function migrate(o) {
     if (!o || !o.profile) return null;
     if (o.v === STATE_V) return o;
-    if (o.v === 6) return migrate7(o);
-    if (o.v === 5) return migrate7(migrate6(o));
-    if (o.v === 4) return migrate7(migrate6(migrate5(o)));
+    if (o.v === 7) return migrate8(o);
+    if (o.v === 6) return migrate8(migrate7(o));
+    if (o.v === 5) return migrate8(migrate7(migrate6(o)));
+    if (o.v === 4) return migrate8(migrate7(migrate6(migrate5(o))));
     if (o.v !== 3) return null;
-    return migrate7(migrate6(migrate5(migrate4(o))));
+    return migrate8(migrate7(migrate6(migrate5(migrate4(o)))));
   }
   function migrate4(o) {
     var st = clone(o), p = st.profile, ageI = AGES.indexOf(p.age);
@@ -2959,7 +3052,11 @@ var Engine = (function () {
     // R5b
     DEVICES: DEVICES, deviceOf: deviceOf, sharedDevice: sharedDevice, defaultDevice: defaultDevice, canShareDevice: canShareDevice, setDevice: setDevice,
     SHARED_DEVICE_TXT: SHARED_DEVICE_TXT, SHARED_16_TXT: SHARED_16_TXT, SHARED_TURNED16_TXT: SHARED_TURNED16_TXT, SHARED_MOVE_TXT: SHARED_MOVE_TXT, SHARED16_REMIND: SHARED16_REMIND,
-    SHARED_ALSO_TXT: SHARED_ALSO_TXT, SHARED_ALSO_PARENT_TXT: SHARED_ALSO_PARENT_TXT, shared16Due: shared16Due, shared16Later: shared16Later, teen16Note: teen16Note, parent16Note: parent16Note, SHARED_BAG_TXT: SHARED_BAG_TXT, NOTIF_SHARED_TXT: NOTIF_SHARED_TXT
+    SHARED_ALSO_TXT: SHARED_ALSO_TXT, SHARED_ALSO_PARENT_TXT: SHARED_ALSO_PARENT_TXT, shared16Due: shared16Due, shared16Later: shared16Later, teen16Note: teen16Note, parent16Note: parent16Note, SHARED_BAG_TXT: SHARED_BAG_TXT, NOTIF_SHARED_TXT: NOTIF_SHARED_TXT,
+    // R5c
+    PARENT_MIN_AGE: PARENT_MIN_AGE, PARENT_ADULT_TXT: PARENT_ADULT_TXT, CONSENT_NEEDS_TXT: CONSENT_NEEDS_TXT, parentVerified: parentVerified, parentAdultYear: parentAdultYear, canGiveConsent: canGiveConsent, parentSetupHere: parentSetupHere, setParentVerified: setParentVerified, giveConsent: giveConsent,
+    // R5c-QA
+    adultRefused: adultRefused, refuseParentAdult: refuseParentAdult, birthEditOk: birthEditOk, setBirth: setBirth, BIRTH_PARENT_TXT: BIRTH_PARENT_TXT, BIRTH_LOCKED_TXT: BIRTH_LOCKED_TXT, BIRTH_U16_TXT: BIRTH_U16_TXT
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
@@ -3180,7 +3277,12 @@ var Illus = (function () {
   // ---------- persistence (sandbox-safe) ----------
   function load() { try { var s = window.localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
   function save() { try { window.localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* in-memory only */ } }
-  function wipe() { try { window.localStorage.removeItem(KEY); } catch (e) { } }
+  // R5c-QA: Gerätemerker – Ablehnung „minderjährig“ im Elternweg übersteht Neuladen, auch bevor ein Konto existiert.
+  // Nur ein Ja/Nein, keine Daten. „Prototyp zurücksetzen“ löscht ihn mit (Demo-Funktion, im echten Produkt nicht möglich).
+  var DEV_KEY = 'fokus11-proto-geraet';
+  function devRefused() { try { var d = JSON.parse(window.localStorage.getItem(DEV_KEY) || 'null'); return !!(d && d.adultRefused); } catch (e) { return false; } }
+  function markDevRefused() { try { window.localStorage.setItem(DEV_KEY, JSON.stringify({ adultRefused: true })); } catch (e) { } }
+  function wipe() { try { window.localStorage.removeItem(KEY); window.localStorage.removeItem(DEV_KEY); } catch (e) { } }
 
   // ---------- dates ----------
   function pad(n) { return ('0' + n).slice(-2); }
@@ -3215,6 +3317,8 @@ var Illus = (function () {
   if (S && !S.profile) S = null;
   // H2: a simulated demo date only lives for one session – on load we always go back to the real today
   if (S) { S.today = realTodayAbsFor(S); S = E.housekeeping(S); }
+  // R5c-QA: Ablehnung auf diesem Gerät gilt auch für ein bestehendes Vorschau-Konto
+  if (S && devRefused() && !E.adultRefused(S) && S.profile.parentConsent !== true) S = E.refuseParentAdult(S).state;
   function freshUi() {
     return { tab: 'heute', view: 'player', overlay: null, ob: null, wc: null, run: null, edit: null, dayDetail: null, foodType: null, parentView: false, result: null, newHeight: '',
       weekView: 'woche', monthOff: 0, act: null, recipe: null, meal: 'fruehstueck', homeLevel: 2, recipeTag: 'Alle', rate: null, flow: null, review: null, pain: null, absence: null,
@@ -3264,7 +3368,7 @@ var Illus = (function () {
     var sy = (n.getMonth() >= 6 ? n.getFullYear() : n.getFullYear() - 1);
     var p = completeProfile({ name: 'Leon', birth: { m: 4, y: sy + 1 - 15 }, share: E.defaultShare(true), age: 'U15', position: 'ZM', position2: 'DM', foot: 'rechts', focus: ['passen', 'schnelligkeit'], teamDays: [1, 3],
       extraMin: { 0: 30, 1: 0, 2: 30, 3: 0, 4: 15, 5: 0, 6: 0 }, heights: [{ d: today - 182, cm: 166 }, { d: today, cm: 168 }], place: { ort: 'garten', people: 1 }, places: ['zimmer', 'wand', 'garten', 'platz'],
-      trainTime: '16:00', parentEmail: 'eltern@example.de', parentConsent: true, account: { mode: 'family', requested: null, parentInvited: true } });
+      trainTime: '16:00', parentEmail: 'eltern@example.de', parentConsent: true, account: { mode: 'family', requested: null, parentInvited: true }, parent: { verified: { contact: true, adult: true, id: false } } });
     var st = E.newState(p, today, base);
     st.created = today - 5; // in calibration (day 6 of 21) – "Kalibrierung überspringen" in Demo
     st.events = demoEvents(st, today);
@@ -3456,8 +3560,8 @@ var Illus = (function () {
     var t16 = E.teen16Note(S);
     if (t16) B.push({ p: 1, h: '<section class="banner info' + (t16.kind === 'shared' ? ' sharedb s16' : '') + '">' + IC.info + '<div style="flex:1"><h3>' + esc(t16.title) + '</h3><p class="sub" style="margin:4px 0 0">' + esc(t16.sub) + '</p>' +
       (t16.kind === 'shared' ? '<button class="linkbtn" data-a="later-16">In ' + E.SHARED16_REMIND + ' Tagen wieder erinnern</button>' : '<button class="linkbtn" data-a="dismiss-16">Verstanden</button>') + '</div></section>' });
-    if (preview()) B.push({ p: 1, h: '<section class="banner consent">' + IC.info + '<div style="flex:1"><h3>Vorschau – deine Eltern müssen noch zustimmen</h3><p class="sub" style="margin:4px 0 0">Deinen Plan siehst du schon. Morgen-Check, Schmerz und Schlaf werden erst nach Zustimmung deiner Eltern gespeichert und im Plan berücksichtigt.</p>' +
-      (p.account.requested != null ? '<p class="note" style="margin-top:6px">Anfrage verschickt am ' + fmt(p.account.requested) + ' (simuliert).</p>' : '<button class="btn sec sm mt8" data-a="ask-consent">Zustimmung bei Eltern anfragen</button>') + '</div></section>' });
+    if (preview()) B.push({ p: 1, h: '<section class="banner consent">' + IC.info + '<div style="flex:1"><h3>Vorschau – deine Eltern müssen noch zustimmen</h3><p class="sub" style="margin:4px 0 0">' + esc(KID_CONSENT_TXT) + ' Morgen-Check, Schmerz und Schlaf werden erst danach gespeichert und im Plan berücksichtigt.</p>' +
+      (p.account.requested != null ? '<p class="note" style="margin-top:6px">Einladung erstellt am ' + fmt(p.account.requested) + ' (simuliert).</p><button class="linkbtn" data-a="ask-consent">Einladung zeigen</button>' : '<button class="btn sec sm mt8" data-a="ask-consent">Eltern einladen</button>') + '</div></section>' });
     var pp = preview() && ui.previewPain && t >= ui.previewPain.day && t <= ui.previewPain.day + 2 ? ui.previewPain : null;
     if (pp) B.push({ p: 0, h: pp.region === 'kopf' ? '<section class="banner warnb" role="alert">' + IC.heart + '<div><h3>Heute kein Training</h3><p class="sub" style="margin:4px 0 0">Du hast „Kopf“ gemeldet. ' + esc(E.HEAD_TXT) + ' Bitte trainiere bis ' + E.DAY_NAMES[E.wd(pp.day + 2)] + ' nicht – auch wenn die Karte oben noch eine Einheit zeigt (Vorschau, nichts gespeichert).</p></div></section>' :
       '<section class="banner calm">' + IC.heart + '<div><h3>Bitte schon dich</h3><p class="sub" style="margin:4px 0 0">Du hast Schmerzen gemeldet. Bis ' + E.DAY_NAMES[E.wd(pp.day + 2)] + ': ' + (pp.region ? 'trainiere ' + esc(E.REGION_SPARE[pp.region].text) : 'keine Sprünge und Sprints') + ' – in der Vorschau passen wir die Einheit noch nicht an. Wenn etwas weh tut: hör auf.</p></div></section>' });
@@ -3909,12 +4013,13 @@ var Illus = (function () {
     ['hilfe', 'Hilfe & FAQ', 'Fragen zur App, So fragen wir nach, Kontakt']
   ];
   function subHead(title) { return '<button class="backrow" data-a="sub" data-v="">' + IC.back + '<span>Ich</span></button><h1 class="subh">' + esc(title) + '</h1>'; }
+  var RESET_NOTE = 'Setzt den Prototyp komplett zurück (im echten Produkt nicht möglich).';
   function viewProfil() {
     var p = S.profile, pos = E.POS_BY_ID[p.position] || {};
     if (ui.sub) return viewSub(ui.sub);
     var h = '<div class="row mt8 profhead" role="button" tabindex="0" data-a="edit-player" aria-label="Spielerprofil bearbeiten"><div class="avatar" aria-hidden="true">' + esc((p.name || '?').charAt(0).toUpperCase()) + '</div><div style="flex:1;min-width:0"><h1 style="font-size:26px">' + esc(p.name) + '</h1><div class="sub">' + esc(p.age) + ' (' + esc(E.JUGEND[p.age]) + ')' + (E.ageYears(p, dateOf(S.today)) != null ? ' · ' + E.ageYears(p, dateOf(S.today)) + ' Jahre' : '') + ' · ' + esc(pos.label || '') + '</div>' +
       (p.ownAccess ? '<span class="tag ok mt8">Eigener Zugang seit ' + fmtY(p.ownAccess.since) + '</span>' : '') + '</div><span class="chev" aria-hidden="true">✎</span></div>';
-    if (preview()) h += '<div class="banner consent">' + IC.info + '<div><b>Deine Eltern haben noch nicht zugestimmt.</b><p class="sub" style="margin:4px 0 0">Bis dahin siehst du deinen Plan als Vorschau – ohne Gesundheitsdaten.</p>' + (p.account.requested != null ? '<p class="note">Anfrage verschickt (simuliert).</p>' : '<button class="btn sec sm mt8" data-a="ask-consent">Zustimmung bei Eltern anfragen</button>') + '</div></div>';
+    if (preview()) h += '<div class="banner consent">' + IC.info + '<div><b>Deine Eltern haben noch nicht zugestimmt.</b><p class="sub" style="margin:4px 0 0">' + esc(KID_CONSENT_TXT) + ' Bis dahin: Vorschau ohne Gesundheitsdaten.</p><button class="btn sec sm mt8" data-a="ask-consent">' + (p.account.requested != null ? 'Einladung zeigen' : 'Eltern einladen') + '</button></div></div>';
     h += '<nav class="ichlist" aria-label="Ich – Bereiche">' + ICH.map(function (c) { return '<button class="ichrow" data-a="sub" data-v="' + c[0] + '"><span><b>' + c[1] + '</b><small>' + c[2] + '</small></span><span class="chev" aria-hidden="true">›</span></button>'; }).join('') + '</nav>';
     var qm = E.questionMoments(S, E.weekStart(S.today));
     h += '<section class="card demo protozone" aria-labelledby="demoT"><div class="row between"><h3 id="demoT">Prototyp / Demo</h3><span class="tag">nur im Prototyp</span></div><p class="sub" style="margin:4px 0 0">Simuliere den Feedback-Rhythmus in einer Minute.</p>' +
@@ -3923,7 +4028,7 @@ var Illus = (function () {
         ['demo-morning', 'Morgen-Check: müde & Muskelkater'], ['demo-sick', 'Krank (3 Tage, Fieber)'], ['demo-holiday', 'Urlaub eintragen'], ['demo-knee', 'Schmerz Knie melden'],
         ['demo-calib', 'Kalibrierung überspringen'], ['demo-16', '16. Geburtstag simulieren'], ['demo-grow', 'Wachstumsschub simulieren'], ['demo-food', 'Woche mit Essen füllen (Beispiel)'], ['demo-school', 'Schulsport eintragen (hart)'], ['demo-winter', 'Winterpause simulieren']]
         .map(function (b) { return '<button class="btn ghost block" data-a="' + b[0] + '">' + esc(b[1]) + '</button>'; }).join('') +
-      '<button class="btn danger block mt16" data-a="reset">Prototyp zurücksetzen</button></section>';
+      '<button class="btn danger block mt16" data-a="reset">Prototyp zurücksetzen</button><p class="note resetnote">' + RESET_NOTE + '</p></section>';
     h += '<p class="legal">Prototyp – keine medizinische Beratung.<br>Im Prototyp bleiben deine Daten auf diesem Gerät.</p>';
     return h;
   }
@@ -3980,6 +4085,8 @@ var Illus = (function () {
       h += '<div class="trow" style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px"><div style="flex:1"><div style="font-weight:600">Vorschau: Was sehen meine Eltern?</div><div class="sub" style="font-size:12.5px">So sieht es in ihrem Elternkonto aus</div></div>' +
         '<button class="switch" role="switch" aria-checked="' + ui.parentView + '" aria-label="Was sehen meine Eltern" data-a="toggle-parent"></button></div>' + (ui.parentView ? parentSummary() : '') +
         (shared() ? '<button class="btn ghost block mt12" data-a="to-parent">Zum Elternbereich</button><p class="note" style="margin-top:4px">Ihr nutzt ein Handy gemeinsam: Hier wechselst du in den Bereich deiner Eltern.</p>' :
+          preview() && !E.parentSetupHere(S) ? '</section><section class="card" id="inviteCard"><h3>Eltern einladen</h3><p class="sub" style="margin:4px 0 0">' + esc(KID_CONSENT_TXT) + '</p>' + inviteBox(p.name) +
+            '<p class="note">Ein Elternkonto lässt sich nicht auf deinem Handy anlegen – deine Eltern nutzen ihr eigenes.</p>' + (E.adultRefused(S) ? '<p class="note adultno">Auf diesem Gerät geht es nur noch über die Einladung an deine Eltern.</p>' : '<div class="protozone simbox"><span class="tag">nur im Prototyp</span><button class="btn ghost block mt8" data-a="sim-parent-phone">Simulation: Eltern öffnen den Link auf ihrem Handy</button></div>') :
           isU16 || p.account.parentInvited ? '<button class="btn ghost block mt12" data-a="to-parent">Ansicht wechseln: Elternkonto (simuliert eigenes Gerät)</button><p class="note" style="margin-top:4px">Im echten Produkt nutzen Eltern ihr eigenes Konto auf ihrem eigenen Gerät – nicht auf deinem Handy.</p>' : '') + '</section>';
       if (S.notifs.length) h += '<section class="card" aria-labelledby="nfT"><div class="row between"><h3 id="nfT">Hinweise an deine Eltern</h3><span class="tag">nicht verschickt</span></div>' +
         S.notifs.slice(-3).reverse().map(function (n) { return '<div class="notif">' + IC.bell + '<div><div class="sub" style="font-size:12px">An deine Eltern · ' + fmtY(n.day) + '</div><div>' + esc(n.text) + '</div></div></div>'; }).join('') +
@@ -3988,7 +4095,7 @@ var Illus = (function () {
       h += subHead('Daten & Konto');
       h += '<section class="card"><h3>Speicherung</h3><p class="sub" style="margin:4px 0 0">Im Prototyp bleibt alles auf diesem Gerät, nichts wird übertragen.</p><ul class="plain mt8 sub"><li>Schmerzmeldungen und Nachrichten an Eltern: nach ' + E.PAIN_KEEP + ' Tagen gelöscht</li><li>Physio-Termine, Gründe fürs Fehlen im Teamtraining: nach ' + E.PHYSIO_KEEP + ' Tagen</li><li>Arzttermine: nach ' + E.ARZT_KEEP + ' Tagen</li><li>Prüfungsphasen: ' + E.EXAM_KEEP + ' Tage nach dem Ende</li><li>Ärztliche Pausen: 90 Tage nach dem Ende</li><li>Taschen-Haken: nach ' + E.BAG_KEEP + ' Tagen</li></ul></section>';
       h += '<section class="card"><h3>Daten exportieren</h3><p class="sub" style="margin:4px 0 0">Im echten Produkt bekommst du hier deine Daten als Datei.</p><span class="tag ph">Platzhalter</span></section>';
-      h += '<section class="card"><h3>Alle Daten löschen</h3><p class="sub" style="margin:4px 0 0">' + (isU16 ? 'Unter 16 zusammen mit deinen Eltern.' : 'Du kannst alles jederzeit löschen.') + ' Im Prototyp heißt das: Prototyp zurücksetzen.</p><button class="btn danger block mt12" data-a="reset">Alles löschen (Prototyp zurücksetzen)</button></section>';
+      h += '<section class="card"><h3>Alle Daten löschen</h3><p class="sub" style="margin:4px 0 0">' + (isU16 ? 'Unter 16 zusammen mit deinen Eltern.' : 'Du kannst alles jederzeit löschen.') + ' Im Prototyp heißt das: Prototyp zurücksetzen.</p><button class="btn danger block mt12" data-a="reset">Alles löschen (Prototyp zurücksetzen)</button><p class="note resetnote">' + RESET_NOTE + '</p></section>';
     } else if (id === 'hilfe') {
       h += subHead('Hilfe & FAQ');
       h += '<section class="card helpcard"><div class="row between"><h3>Akut Hilfe?</h3></div><p class="sub" style="margin:4px 0 0">Notruf, krisenchat und Nummer gegen Kummer – ohne Login. Wird nie an deinen Trainer weitergegeben.</p><button class="btn sec block mt12" data-a="open-help">Hilfe öffnen</button></section>';
@@ -4057,8 +4164,12 @@ var Illus = (function () {
     var p = S.profile, name = esc(p.name), isU16 = u16(), ov = E.parentOverview(S), pm = ui.pm || {}, sub = ui.psub;
     var h = '<div class="parentbar">' + (shared() ? 'Elternbereich · gemeinsames Handy' : 'Elternkonto · simuliert eigenes Gerät') + '</div>', backLbl = shared() ? planOf(p.name) : 'Zurück zur Spieler-Ansicht';
     if (isU16 && p.parentConsent === false) {
-      var c = ui.pc || {};
-      h += '<h1>Hallo! Hier ist das Elternkonto für ' + name + '.</h1><button class="btn ghost block mt8" data-a="to-player">Zurück zur Spieler-Ansicht</button>';
+      var c = ui.pc || {}, vf = E.parentVerified(S), pvx = ui.pv || (ui.pv = newPv()); if (E.adultRefused(S)) pvx.adultNo = true; // R5c-QA
+      h = '<div class="parentbar">Eltern-Handy · simuliert über den Link</div>';
+      // R5c: erst Code + Geburtsjahr (Ausweis freiwillig), dann Zustimmung – kein Selbst-Freigeben
+      var pstep = pvx.adultNo ? 'year' : !vf.contact ? 'contact' : !vf.adult ? 'year' : !vf.id && !pvx.idLater ? 'id' : null;
+      if (pstep) return h + pvHtml(pvx, pstep, p.name) + (pvx.adultNo ? '' : '<button class="btn ghost block mt12" data-a="to-player">Simulation beenden – zurück zu ' + gen(p.name) + ' Handy</button>') + '<p class="legal">Prototyp – im Prototyp wird nichts verschickt.</p>';
+      h += '<h1>Hallo! Hier ist das Elternkonto für ' + name + '.</h1><p class="pvok">' + IC.check + ' Bestätigt: Kontakt, volljährig' + (vf.id ? ', Ausweis (simuliert)' : '') + '</p><button class="btn ghost block mt8" data-a="to-player">Simulation beenden – zurück zu ' + gen(p.name) + ' Handy</button>';
       h += '<section class="card ci-card"><h3>Zustimmung für ' + name + '</h3><p class="sub" style="margin:4px 0 0">' + name + ' hat Fokus11 selbst gestartet und bittet um Ihre Zustimmung. Erst danach speichert Fokus11 Morgen-Check, Schmerz- und Schlafangaben.</p>' +
         '<section class="card flat"><h3>Das sehen Sie bis zum 16. Geburtstag immer</h3><ul class="plain mt8"><li>Trainings- und Ruhetage</li><li>Anzahl Einheiten</li><li>Gemeldete Schmerzen (Datum, Körperstelle)</li></ul><p class="note">Schlaf und einzelne Antworten nur, wenn Ihr Kind sie teilt. Trainer sehen Schmerzen nie.</p></section>' +
         '<button class="check mt12" role="checkbox" aria-checked="' + !!c.agree + '" data-a="pc" data-v="agree"><span class="box">' + (c.agree ? IC.check : '') + '</span><span>Ich bin sorgeberechtigt und stimme zu, dass ' + name + ' Fokus11 nutzt.</span></button>' +
@@ -4096,6 +4207,10 @@ var Illus = (function () {
     else if (sub === 'daten') {
       h += '<section class="card"><h3>Speicherung</h3><p class="sub" style="margin:4px 0 0">Im Prototyp bleibt alles auf diesem Gerät. Schmerzmeldungen und Nachrichten werden nach ' + E.PAIN_KEEP + ' Tagen gelöscht, ärztliche Pausen 90 Tage nach dem Ende.</p></section>';
       h += ov.ownAccess || !isU16 || shared() ? '' : '<section class="card"><h3>Eigener Zugang für ' + name + '</h3><button class="btn sec block mt8" data-a="own-access">Eigenen Zugang einrichten</button><p class="note">Sie entscheiden, wann ' + name + ' einen eigenen Zugang bekommt. Alle Daten wandern mit.</p></section>';
+      var vfd = E.parentVerified(S);
+      h += '<section class="card idcard"><h3>Ihre Bestätigung</h3><ul class="plain mt8"><li>Kontakt (Code): <b>' + (vfd.contact ? 'bestätigt' : 'noch nicht bestätigt') + '</b></li><li>Volljährig (Geburtsjahr): <b>' + (vfd.adult ? 'ja' : 'noch nicht bestätigt') + '</b></li>' +
+        '<li>Ausweis: <b class="idstat">' + (vfd.id ? 'bestätigt (simuliert)' : 'noch nicht bestätigt') + '</b></li></ul>' + (p.parent && p.parent.legacy ? '<p class="note">Ihre Zustimmung stammt aus einer früheren Version des Prototyps.</p>' : '') +
+        (vfd.id ? '' : '<button class="btn sec block mt8" data-a="pv-id" data-v="yes">Mit Ausweis bestätigen (Online-Ausweis – nur „volljährig: ja“)</button>') + '<p class="note">Im Pilot reicht die Einladung über den Verein. Gespeichert wird nur Ja/Nein.</p></section>';
       h += '<section class="card"><h3>Weiteres Elternteil einladen</h3><p class="sub" style="margin:4px 0 0">Mehrere Elternkonten sind möglich (z. B. bei getrennten Eltern).</p><div class="qrbox">' + I.qr('eltern2-' + p.name, 116) + '<p class="note">Link und QR-Code sind im Prototyp simuliert.</p></div></section>';
       h += '<section class="card"><h3>Alle Daten löschen</h3><p class="sub" style="margin:4px 0 0">Jederzeit möglich. Im Prototyp nicht verbunden.</p><span class="tag ph">Platzhalter</span></section>';
     } else if (sub === 'hilfe') {
@@ -4758,7 +4873,7 @@ var Illus = (function () {
   function birthLocked() { return S.profile.parentConsent === true && u16(); }
   function ovEditPlayer() {
     var e = ui.edit, bp = S.profile.birth || {};
-    var birth = birthLocked() ? '<div class="kv"><span>Geburtsdatum</span><b>' + (bp.m ? MONTHS[bp.m - 1] + ' ' + bp.y : '–') + '</b></div><p class="note" style="margin-top:2px">Deine Eltern haben das Geburtsdatum bestätigt – ändern können sie es im Elternkonto.</p>' : birthSelects(e.birthM, e.birthY, 'ed');
+    var birth = birthLocked() ? '<div class="kv"><span>Geburtsdatum</span><b>' + (bp.m ? MONTHS[bp.m - 1] + ' ' + bp.y : '–') + '</b></div><p class="note" style="margin-top:2px">' + esc(E.BIRTH_LOCKED_TXT) + '</p>' : birthSelects(e.birthM, e.birthY, 'ed') + (u16() ? '<p class="note birthu16">' + esc(E.BIRTH_PARENT_TXT) + '</p>' : '');
     var nameF = '<label class="f" for="edN" style="margin-top:0">Vorname</label><input id="edN" type="text" maxlength="20" autocomplete="off" value="' + esc(e.name) + '" data-bind="ed.name">';
     return shell('Spielerprofil', nameF + birth + (birthLocked() ? '<div class="kv"><span>Altersklasse</span><b>' + esc(S.profile.age) + '</b></div>' : '<p class="sub" style="margin:10px 0 0">Altersklasse (aus dem Jahrgang, ±1 änderbar):</p>' + ageChips(e.age, 'ed-age', e.birthY || (S.profile.birth && S.profile.birth.y))) +
       '<h3 class="mt16" style="font-size:15px">Starker Fuß</h3><div class="mt8">' + footChips(e.foot) + '</div><h3 class="mt16" style="font-size:15px">Position</h3>' + pitch(e.position, 'pick-pos', e.position2) + pos2Chips(e.position2, e.position) +
@@ -4834,11 +4949,94 @@ var Illus = (function () {
   // =====================================================================
   // ONBOARDING (A6 / Entscheidung 5): zwei Eingänge, Eltern legen Familie an (Standard unter 16) oder Kind startet als Vorschau
   // =====================================================================
+  // R5c: Texte (Elevator-Pitch, ehrlicher Satz für Kinder unter 16) und Einladung an die Eltern (Link/QR simuliert)
+  var ELEVATOR = 'Fokus11 plant dein Extra-Training passend zu Teamtraining, Spielen und Schule. Nach kurzen Rückmeldungen passt sich der Plan an dich an. Bis 16 brauchst du die Zustimmung deiner Eltern – sie sehen dann deine Trainings- und Ruhetage.';
+  var KID_CONSENT_TXT = 'Für deinen Plan brauchen wir die Zustimmung deiner Eltern. Bis dahin kannst du alles ausprobieren.';
+  function inviteBox(name) {
+    var slug = String(name || 'kind').toLowerCase().replace(/[^a-zäöüß0-9]/g, '') || 'kind';
+    return '<section class="card flat invitebox"><h3>Einladung für deine Eltern</h3><p class="sub" style="margin:4px 0 0">Zeig deinen Eltern den QR-Code oder schick ihnen den Link. Sie öffnen ihn auf ihrem eigenen Handy, bestätigen kurz, dass sie Eltern sind, und stimmen dann zu.</p>' +
+      '<div class="qrbox">' + I.qr('eltern-' + slug, 132) + '<p class="sub" style="margin:8px 0 0;font-weight:600">fokus11.app/eltern/' + esc(slug) + '</p><p class="note">Link und QR-Code sind im Prototyp simuliert – es wird nichts verschickt.</p></div></section>';
+  }
   function defaultDraft() {
     return { role: null, childTurn: false, invited: false, name: '', birthM: '', birthY: '', age: 'U15', ageManual: false, foot: 'rechts', position: 'ZM', position2: '', focus: [], teamDays: [1, 3], matchWd: 5,
-      extraMin: { 0: 30, 1: 0, 2: 30, 3: 0, 4: 30, 5: 0, 6: 0 }, places: ['zimmer', 'garten'], parentEmail: '', consentAsked: false, parentNow: false, parentConsentNow: false, pAgree: false, pHealth: false, device: null };
+      extraMin: { 0: 30, 1: 0, 2: 30, 3: 0, 4: 30, 5: 0, 6: 0 }, places: ['zimmer', 'garten'], parentEmail: '', consentAsked: false, pAgree: false, pHealth: false, device: null, pv: Object.assign(newPv(), { adultNo: devRefused() }), verified: { contact: false, adult: false, id: false } };
   }
-  function obSteps(d) { return d.role === 'parent' && !d.childTurn ? ['welcome', 'p-family', 'p-invite'] : ['welcome', 'basics', 'position', 'focus', 'week', 'account', 'privacy']; }
+  // R5c: Start in zwei Schritten (Willkommen → Einrichtung „Wer bist du?“); Elternweg mit Prüfung (Code, Geburtsjahr, Ausweis optional) vor der Zustimmung
+  function obSteps(d) { return d.role === 'parent' && !d.childTurn ? ['welcome', 'setup', 'p-contact', 'p-year', 'p-id', 'p-family', 'p-invite'] : ['welcome', 'setup', 'basics', 'position', 'focus', 'week', 'account', 'privacy']; }
+  var OB_FIRST = 2; // erster Schritt nach „Wer bist du?“
+  // ---------- R5c: Eltern-Prüfung (simuliert) – gemeinsam für Onboarding und Elternansicht ----------
+  function newPv() { return { contact: '', sent: false, code: '', codeIn: '', year: '', adultNo: false, err: '' }; }
+  function pvCode() { var c = ''; for (var i = 0; i < 6; i++) c += Math.floor(Math.random() * 10); return c; }
+  function pvContactOk(v) { v = String(v || '').trim(); return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || /^\+?[\d\s/-]{6,}$/.test(v) && v.replace(/\D/g, '').length >= 6; }
+  var PV_HELLO = 'Damit sich niemand selbst freigeben kann, bestätigen Sie kurz, dass Sie ein Elternteil sind.';
+  function pvHtml(pv, step, name) {
+    var nm = esc(name || 'Ihr Kind');
+    if (step === 'contact') {
+      return '<h1>Kurz bestätigen</h1><p class="sub">' + PV_HELLO + ' Zuerst Ihre E-Mail-Adresse oder Handynummer.</p>' +
+        '<label class="f" for="pvc">Ihre E-Mail-Adresse oder Handynummer</label><input id="pvc" type="text" inputmode="email" autocomplete="off" value="' + esc(pv.contact) + '" data-bind="pv.contact" placeholder="name@beispiel.de oder 0151 …">' +
+        (pv.sent ? '<section class="banner info">' + IC.info + '<div>Code an <b>' + esc(pv.contact) + '</b> gesendet <b>(simuliert)</b>. Im Prototyp lautet er: <b class="pvcode">' + esc(pv.code) + '</b></div></section>' +
+          '<label class="f" for="pvk">Bestätigungscode</label><input id="pvk" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" value="' + esc(pv.codeIn) + '" data-bind="pv.codeIn" placeholder="6 Ziffern">' +
+          (pv.err ? '<p role="alert" class="pverr">' + esc(pv.err) + '</p>' : '') + '<button class="btn block mt12" data-a="pv-code">Code bestätigen</button><button class="linkbtn" data-a="pv-send">Neuen Code senden</button>' :
+          (pv.err ? '<p role="alert" class="pverr">' + esc(pv.err) + '</p>' : '') + '<button class="btn block mt12" data-a="pv-send">Code senden</button>') +
+        '<p class="note">Im Prototyp wird nichts verschickt. Gespeichert wird nur „bestätigt: ja“.</p>';
+    }
+    if (step === 'year') {
+      if (pv.adultNo) return '<h1>' + esc(E.PARENT_ADULT_TXT) + '</h1><p class="sub">Bist du Spieler:in? Dann geht es hier weiter. Deinen Plan kannst du schon ausprobieren – deine Eltern laden wir einfach ein.</p><p class="note adultno">Auf diesem Gerät geht es jetzt nur noch über die Einladung an deine Eltern.</p>' +
+        '<button class="btn block mt12" data-a="pv-kid">Ich bin Spieler:in</button><button class="btn ghost block mt8" data-a="pv-abort">Zurück</button>';
+      var ny = new Date().getFullYear(), ys = []; for (var y = ny - 10; y >= ny - 90; y--) ys.push(y);
+      return '<h1>Ihr Geburtsjahr</h1><p class="sub">Zustimmen können nur Erwachsene. Wir speichern nur „volljährig: ja“ – nicht das Jahr.</p>' +
+        '<label class="f" for="pvY">Ihr Geburtsjahr</label><select id="pvY" data-bind="pv.year"><option value="">Jahr</option>' + ys.map(function (v) { return '<option value="' + v + '"' + (+pv.year === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select>' +
+        '<button class="btn block mt12" data-a="pv-year"' + (pv.year ? '' : ' disabled') + '>Weiter</button>';
+    }
+    if (step === 'id') {
+      return '<h1>Volljährigkeit bestätigen</h1><p class="sub">Freiwillig: Mit dem Online-Ausweis bestätigen Sie, dass Sie volljährig sind. Übermittelt wird nur „volljährig: ja“ – kein Name, kein Foto, keine Ausweisnummer.</p>' +
+        '<button class="btn sec block mt12" data-a="pv-id" data-v="yes">Mit Ausweis bestätigen (Online-Ausweis – nur „volljährig: ja“)</button>' +
+        '<button class="btn ghost block mt8" data-a="pv-id" data-v="later">Später</button>' +
+        '<section class="banner info mt12">' + IC.info + '<div>Im Pilot reicht die Einladung über den Verein. Den Ausweis-Schritt simuliert der Prototyp nur. Den Status sehen Sie unter Daten &amp; Konto.</div></section>';
+    }
+    return '';
+  }
+  function pvState() { return ui.ob ? ui.ob.draft.pv : (ui.pv = ui.pv || newPv()); }
+  // Prüfungs-Schritte: Kontakt → Code → Geburtsjahr; gespeichert nur als Ja/Nein (draft.verified bzw. E.setParentVerified)
+  function pvSetVerified(patch) {
+    if (ui.ob) { if (ui.ob.draft.pv.adultNo && (patch.adult || patch.id)) return false; Object.assign(ui.ob.draft.verified, patch); return true; }
+    var r = E.setParentVerified(S, patch); if (r.refused) { toast(r.why); return false; }
+    S = r.state; save(); return true;
+  }
+  function pvAction(a, v) {
+    var pv = pvState(), rr = ui.ob ? function () { renderOnboarding(); focusOb(); } : function () { render(); var mm = document.getElementById('main'); if (mm) mm.scrollTop = 0; };
+    if (a === 'pv-send') {
+      if (!pvContactOk(pv.contact)) { pv.err = 'Bitte geben Sie eine gültige E-Mail-Adresse oder Handynummer ein.'; return rr(); }
+      pv.err = ''; pv.sent = true; pv.code = pvCode(); pv.codeIn = ''; rr(); toast('Code gesendet (simuliert).'); return;
+    }
+    if (a === 'pv-code') {
+      if (String(pv.codeIn).trim() !== pv.code) { pv.err = 'Der Code stimmt nicht. Bitte prüfen Sie ihn.'; return rr(); }
+      pv.err = ''; pvSetVerified({ contact: true }); if (ui.ob) ui.ob.step++; rr(); toast('Bestätigt.'); return;
+    }
+    if (a === 'pv-year') {
+      if (!pv.year) return;
+      if (pv.adultNo || !E.parentAdultYear(+pv.year, new Date())) {
+        // R5c-QA: Ablehnung dauerhaft merken (Gerätemerker + State) – kein zweiter Versuch nach Neuladen oder erneutem Öffnen
+        pv.adultNo = true; pv.year = ''; markDevRefused();
+        if (ui.ob) ui.ob.draft.verified.adult = false; else { S = E.refuseParentAdult(S).state; save(); }
+        return rr();
+      }
+      pv.year = ''; if (!pvSetVerified({ adult: true })) return rr(); if (ui.ob) ui.ob.step++; rr(); return; // Jahr selbst wird nicht behalten
+    }
+    if (a === 'pv-id') {
+      if (v === 'yes') { if (pvSetVerified({ id: true })) toast('Volljährigkeit bestätigt (simuliert).'); } else pv.idLater = true;
+      if (ui.ob) ui.ob.step++; rr(); return;
+    }
+    if (a === 'pv-kid' || a === 'pv-abort') {
+      if (ui.ob) {
+        var d = ui.ob.draft; d.verified = { contact: false, adult: false, id: false };
+        if (a === 'pv-kid') { d.role = 'player'; ui.ob.step = OB_FIRST; } else { d.role = null; ui.ob.step = 1; }
+        renderOnboarding(); focusOb(); return;
+      }
+      ui.view = 'player'; ui.overlay = null; render(); return;
+    }
+  }
+
   function draftAge(d) { if (!d.birthY || !d.birthM) return null; return E.ageYears({ birth: { m: +d.birthM, y: +d.birthY } }, new Date()); }
   function draftU16(d) { var a = draftAge(d); return a == null ? true : a < 16; }
   function birthSelects(m, y, prefix, locked) {
@@ -4864,17 +5062,24 @@ var Illus = (function () {
     if (!ui.ob) ui.ob = { step: 0, draft: defaultDraft(), err: '' };
     var o = ui.ob, d = o.draft, steps = obSteps(d), st = steps[o.step], b = '', canNext = true, nextLbl = 'Weiter', showNext = true;
     if (st === 'welcome') {
-      // R5b: ruhiger Start – Kopfkarte, Elevator-Pitch, eine große geteilte Karte (Spieler:in | Elternteil), Beispieldaten leise darunter
+      // R5c Schritt 1 „Willkommen“: Kopfkarte, kurzer Text, „Los geht's“; Beispieldaten und Hilfe leise darunter
       b = '<div class="hero start">' + IC.ball + '<div class="k" style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.9">Prototyp</div><h1>Fokus<span style="color:#bbf7d0">11</span></h1>' +
         '<p>Zusatztraining, das zu Teamtraining, Spielen und Schule passt.</p></div>' +
-        '<p class="elevator">Fokus11 plant dein Extra-Training passend zu Teamtraining, Spielen und Schule. Nach kurzen Rückmeldungen passt sich der Plan an dich an – und bis 16 sehen deine Eltern, was geplant ist.</p>' +
-        '<div class="rolewrap"><h2 class="roleq" id="roleQ">Wer bist du?</h2><div class="rolecard" role="group" aria-labelledby="roleQ">' +
-          '<button class="rolehalf" data-a="ob-role" data-v="player"><span class="silbox">' + I.silPlayer() + '</span><span class="rs">Mein Plan</span><span class="rl rbtn">Spieler:in</span></button>' +
-                    '<button class="rolehalf" data-a="ob-role" data-v="parent"><span class="silbox">' + I.silParent() + '</span><span class="rs">Familie anlegen – auch ohne eigenes Handy des Kindes</span><span class="rl rbtn">Elternteil</span></button>' +
-        '</div></div>' +
-        '<p class="note startnote">Unter 16 legt am besten ein Elternteil die Familie an und lädt dich ein.</p>' +
+        '<p class="elevator">' + esc(ELEVATOR) + '</p>' +
+        '<button class="btn block mt12 gobtn" data-a="ob-start">Los geht’s</button>' +
         '<div class="startdemo"><button class="btn ghost block" data-a="ob-demo">Mit Beispieldaten starten</button><p class="note">Beispiel: Leon, U15, Zentrales Mittelfeld</p></div>' +
         '<button class="linkbtn" style="display:block;margin:4px auto 0" data-a="open-help">Hilfe – ohne Login</button>';
+      showNext = false;
+    } else if (st === 'setup') {
+      // R5c Schritt 2 „Einrichtung“: Rahmen „Wer bist du?“ mit den zwei Kacheln (Design aus R5b), Zurück möglich
+      b = '<p class="obkicker">Einrichtung</p><div class="rolewrap"><h1 class="roleq" id="roleQ">Wer bist du?</h1><div class="rolecard" role="group" aria-labelledby="roleQ">' +
+          '<button class="rolehalf" data-a="ob-role" data-v="player"><span class="silbox">' + I.silPlayer() + '</span><span class="rs">Mein Plan</span><span class="rl rbtn">Spieler:in</span></button>' +
+          '<button class="rolehalf" data-a="ob-role" data-v="parent"><span class="silbox">' + I.silParent() + '</span><span class="rs">Familie anlegen – auch ohne eigenes Handy des Kindes</span><span class="rl rbtn">Elternteil</span></button>' +
+        '</div></div>' +
+        '<p class="note startnote">Unter 16 legt am besten ein Elternteil die Familie an und lädt dich ein.</p>';
+      showNext = false;
+    } else if (st === 'p-contact' || st === 'p-year' || st === 'p-id') {
+      b = '<div class="parentbar">Elternkonto · Bestätigung</div>' + pvHtml(d.pv, d.pv.adultNo ? 'year' : st.slice(2), ''); // R5c-QA: nach Ablehnung nur noch der Hinweis
       showNext = false;
     } else if (st === 'p-family') {
       var tooOld = d.birthY && d.birthM && !draftU16(d);
@@ -4885,7 +5090,8 @@ var Illus = (function () {
         (tooOld ? '<section class="banner info">' + IC.info + '<div>Ab 16 richtet Ihr Kind Fokus11 selbst ein und kann Sie bei Bedarf einladen.</div></section>' :
           '<h3 class="mt16" style="font-size:16px">Wie nutzt ' + esc(d.name.trim() || 'Ihr Kind') + ' Fokus11?</h3>' + deviceChoice(d.device, d.name.trim(), 'ob-device', true) +
           '<p class="note">Jederzeit änderbar. Später aufs eigene Handy umziehen geht per Link – alle Daten wandern mit.</p>' + parentConsentBox(d, d.name));
-      canNext = d.name.trim() && d.birthM && d.birthY && !tooOld && d.pAgree && d.pHealth && !!d.device; nextLbl = d.device === 'shared' ? 'Weiter' : 'Einladung erstellen';
+      b = b.replace('<h1>Familie anlegen</h1>', '<h1>Familie anlegen</h1><p class="pvok">' + IC.check + ' Bestätigt: Kontakt, volljährig' + (d.verified.id ? ', Ausweis (simuliert)' : '') + '</p>');
+      canNext = d.name.trim() && d.birthM && d.birthY && !tooOld && d.pAgree && d.pHealth && !!d.device && d.verified.contact && d.verified.adult; nextLbl = d.device === 'shared' ? 'Weiter' : 'Einladung erstellen';
     } else if (st === 'p-invite' && d.device === 'shared') {
       b = '<div class="parentbar">Elternbereich · gemeinsames Handy</div><h1>Jetzt ist ' + esc(d.name) + ' dran</h1><p class="sub">Ihre Zustimmung ist gespeichert. Geben Sie das Handy kurz an ' + esc(d.name) + ': Position, Schwerpunkt und Vereinswoche trägt ' + esc(d.name) + ' am besten selbst ein.</p>' +
         '<section class="card flat"><h3>So funktioniert das gemeinsame Handy</h3><ul class="plain mt8"><li>Oben wechseln Sie zwischen ' + esc(gen(d.name)) + ' Plan und dem Elternbereich.</li><li>' + esc(d.name) + ' erfährt ehrlich, dass Sie hier alles sehen können.</li><li>Mitteilungen kommen auf dieses Handy – neutral, höchstens eine pro Tag.</li><li>Bekommt ' + esc(d.name) + ' ein eigenes Handy, ziehen Sie per Link um. Alles kommt mit.</li></ul></section>' +
@@ -4916,20 +5122,13 @@ var Illus = (function () {
         E.PLACES.map(function (o) { return '<button class="chip sm" aria-pressed="' + (d.places.indexOf(o.id) >= 0) + '" data-a="ob-place" data-v="' + o.id + '">' + o.label + '</button>'; }).join('') + '</div>';
     } else if (st === 'account') {
       if (!draftU16(d)) b = '<h1>Deine Einwilligung</h1><section class="banner info">' + IC.info + '<div>Du bist 16 oder älter – du stimmst selbst zu. Deine Eltern haben nur ein Konto, wenn du sie einlädst, und sehen nur, was du freigibst (standardmäßig nichts).</div></section>';
-      else if ((d.invited || d.parentConsentNow) && d.device === 'shared') b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b></div></section>' +
+      else if (d.invited && d.device === 'shared') b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b></div></section>' +
         '<section class="banner info sharedb">' + IC.info + '<div><b>' + esc(E.SHARED_DEVICE_TXT) + '</b><p class="sub" style="margin:4px 0 0">Das steht auch unter Ich → Eltern & Teilen. Wenn du ein eigenes Handy bekommst, ziehst du mit allen Daten um.</p></div></section>';
-      else if (d.invited || d.parentConsentNow) b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b><p class="sub" style="margin:4px 0 0">Bis 16 sehen sie in ihrem Elternkonto immer eine Grundübersicht (Trainings-/Ruhetage, Anzahl Einheiten, gemeldete Schmerzen). Ob sie auch Schlaf und Antworten sehen, entscheidest du unter Ich → Eltern & Teilen.</p></div></section>';
-      else if (d.parentNow) {
-        b = '<div class="parentbar">Elternkonto · simuliert eigenes Gerät</div><h1>Zustimmung für ' + esc(d.name) + '</h1><p class="sub">' + esc(d.name) + ' möchte Fokus11 nutzen. Erst nach Ihrer Zustimmung speichern wir Gesundheitsangaben.</p>' + parentConsentBox(d, d.name) +
-          '<button class="btn block mt12" data-a="ob-parent-ok"' + (d.pAgree && d.pHealth ? '' : ' disabled') + '>Zustimmung geben</button><button class="linkbtn" data-a="ob-parent-back">Zurück zur Spieler-Ansicht</button>';
-        showNext = false;
-      } else {
-        b = '<h1>Deine Eltern</h1><p class="sub">Weil du unter 16 bist, müssen deine Eltern zustimmen, bevor wir Gesundheitsangaben speichern (Morgen-Check, Schmerz, Schlaf). Deinen Plan kannst du schon jetzt als <b>Vorschau</b> nutzen.</p>' +
-          '<label class="f" for="pe">E-Mail eines Elternteils (nur für die Anfrage)</label><input id="pe" type="email" autocomplete="off" value="' + esc(d.parentEmail) + '" data-bind="ob.parentEmail" placeholder="name@beispiel.de">' +
-          (o.err ? '<p role="alert" style="color:#b91c1c;font-weight:600">' + esc(o.err) + '</p>' : '') +
-          (d.consentAsked ? '<section class="banner info">' + IC.info + '<div>Anfrage an <b>' + esc(d.parentEmail) + '</b> verschickt <b>(im Prototyp simuliert)</b>. Bis zur Zustimmung: Vorschau ohne Gesundheitsdaten.</div></section>' : '<button class="btn sec block mt12" data-a="ob-ask">Zustimmung bei Eltern anfragen</button>') +
-          '<button class="btn ghost block mt8" data-a="ob-parent-now">Elternteil ist da? Ansicht wechseln: Elternkonto (simuliert)</button>' +
-          '<p class="note">Die E-Mail wird nur für die Einladung genutzt.</p>';
+      else if (d.invited) b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b><p class="sub" style="margin:4px 0 0">Bis 16 sehen sie in ihrem Elternkonto immer eine Grundübersicht (Trainings-/Ruhetage, Anzahl Einheiten, gemeldete Schmerzen). Ob sie auch Schlaf und Antworten sehen, entscheidest du unter Ich → Eltern & Teilen.</p></div></section>';
+      else {
+        // R5c: ehrlich, ohne Häkchen – das Kind kann sich nicht selbst freigeben, nur die Eltern einladen
+        b = '<h1>Deine Eltern</h1><p class="sub kidhonest">' + esc(KID_CONSENT_TXT) + '</p><p class="note">Bis dahin ist es eine <b>Vorschau</b>: Morgen-Check, Schmerz und Schlaf speichern wir erst nach ihrer Zustimmung.</p>' +
+          (d.consentAsked ? inviteBox(d.name) : '<button class="btn sec block mt12" data-a="ob-ask">Eltern einladen</button>');
         nextLbl = 'Weiter mit Vorschau';
       }
     } else if (st === 'privacy') {
@@ -4938,7 +5137,7 @@ var Illus = (function () {
         '<section class="card"><h3>Gut zu wissen</h3><p class="sub" style="margin:6px 0 0">Fokus11 ist ein Prototyp und keine medizinische Beratung. Dein Plan ist so gut wie deine Antworten. Hilfe findest du jederzeit oben über „Hilfe“.</p></section>';
       nextLbl = 'Plan erstellen';
     }
-    var nDots = steps.length - 1, dots = o.step > 0 ? '<div class="dots" aria-label="Schritt ' + o.step + ' von ' + nDots + '">' + steps.slice(1).map(function (_, i) { return '<i class="' + (i + 1 === o.step ? 'on' : '') + '"></i>'; }).join('') + '</div>' : '';
+    var nDots = steps.length - OB_FIRST, dots = o.step >= OB_FIRST ? '<div class="dots" aria-label="Schritt ' + (o.step - OB_FIRST + 1) + ' von ' + nDots + '">' + steps.slice(OB_FIRST).map(function (_, i) { return '<i class="' + (i + OB_FIRST === o.step ? 'on' : '') + '"></i>'; }).join('') + '</div>' : '';
     var sc = document.getElementById('obBody'), keep = sc && renderOnboarding.last === st ? sc.scrollTop : 0;
     $app.innerHTML = '<div class="topbar"><div class="logo">Fokus<b>11</b> <span class="badge">Prototyp</span></div><button class="helpbtn" data-a="open-help" aria-label="Hilfe">' + IC.help + 'Hilfe</button></div>' + dots +
       '<div class="ob"><div class="body" id="obBody">' + b + '</div><footer>' + (o.step > 0 ? '<button class="btn ghost" data-a="ob-back" aria-label="Zurück">' + IC.back + '</button>' : '') +
@@ -4949,27 +5148,27 @@ var Illus = (function () {
   }
   function obNext() {
     var o = ui.ob, d = o.draft, steps = obSteps(d), st = steps[o.step];
-    if (st === 'account' && draftU16(d) && !d.invited && !d.parentConsentNow && d.parentEmail.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.parentEmail.trim())) { o.err = 'Bitte gib eine gültige E-Mail-Adresse ein – oder lass das Feld leer.'; return renderOnboarding(); }
     o.err = '';
     if (o.step < steps.length - 1) { o.step++; renderOnboarding(); focusOb(); return; }
     var base = realBase(), n = new Date(), today = E.absOfYmd({ base: base }, n.getFullYear(), n.getMonth(), n.getDate());
-    var isU16 = draftU16(d), consent = !isU16 ? 'self' : (d.invited || d.parentConsentNow) ? true : false;
+    var isU16 = draftU16(d), consent = !isU16 ? 'self' : d.invited && d.verified.contact && d.verified.adult ? true : false; // R5c: nur nach Eltern-Prüfung
     var allowed = E.fociFor(d.age, d.position).map(function (f) { return f.id; });
     var p = completeProfile({ name: d.name.trim(), birth: { m: +d.birthM, y: +d.birthY }, age: d.age, position: d.position, position2: d.position2 || null, foot: d.foot,
       focus: d.focus.filter(function (f) { return allowed.indexOf(f) >= 0; }), teamDays: d.teamDays.slice(), extraMin: Object.assign({}, d.extraMin), heights: [],
       places: d.places.slice(), place: { ort: ['garten', 'wand', 'halle', 'zimmer'].filter(function (o) { return d.places.indexOf(o) >= 0; })[0] || d.places[0] || 'zimmer', people: 1 },
-      parentEmail: isU16 ? d.parentEmail.trim() : '', parentConsent: consent, share: E.defaultShare(isU16),
+      parentEmail: '', parentConsent: consent, parent: { verified: Object.assign({}, d.verified) }, share: E.defaultShare(isU16),
       account: { mode: !isU16 ? 'self' : consent === true ? 'family' : 'preview', requested: d.consentAsked ? today : null, parentInvited: isU16 },
       device: isU16 && d.device === 'shared' ? 'shared' : 'own' });
     if (p.device === 'shared') { p.deviceSince = today; p.sharedSeen = false; }
     if (!p.focus.length) p.focus = ['passen'];
     var ad = autoDays(d, true); Object.keys(ad).forEach(function (w) { if (p.teamDays.indexOf(+w) < 0) p.extraMin[w] = 0; }); // B-05: Auto-Tage ohne eigene Minuten
+    if (d.pv.adultNo || devRefused()) p.parent.adultRefused = true; // R5c-QA
     S = E.newState(p, today, base);
     if (d.matchWd >= 0) S.events = E.seriesEvents(S, d.matchWd, today, today + 250, E.matchDur(d.age));
     save();
     ui.ob = null; ui.tab = 'heute'; render(); toast('Dein Plan ist fertig, ' + p.name + '!');
   }
-  function focusOb() { var h = document.querySelector('#obBody h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
+  function focusOb() { var h = document.querySelector('#obBody h1, #obBody h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
 
   // =====================================================================
   // DEMO helpers
@@ -5091,18 +5290,21 @@ var Illus = (function () {
       case 'dismiss-calib': S.calibHide = true; save(); render(); break;
       case 'energy-seen': S.energyTipSeen = true; save(); render(); break;
       // Konto / Eltern (Entscheidung 5)
-      case 'ask-consent': S.profile.account.requested = t; save(); render(); toast('Anfrage an deine Eltern verschickt (simuliert).'); break;
+      case 'ask-consent': var firstInv = S.profile.account.requested == null; if (firstInv) { S.profile.account.requested = t; save(); } ui.view = 'player'; ui.overlay = null; ui.tab = 'profil'; ui.sub = 'eltern'; render(); var ic = document.getElementById('inviteCard'); if (ic) ic.scrollIntoView({ block: 'start' }); if (firstInv) toast('Einladung für deine Eltern erstellt (simuliert).'); break;
+      case 'sim-parent-phone': if (E.adultRefused(S)) { toast('Auf diesem Gerät geht es nur noch über die Einladung an deine Eltern.'); break; } ui.pv = newPv(); goParentView(); break;
       case 'invite-parents': S.profile.account.parentInvited = true; S.profile.account.invitedByTeen = true; save(); render(); toast('Einladung an deine Eltern erstellt (simuliert).'); break;
       case 'to-parent':
         // H1 (13.11., Gründer-Go): auf dem gemeinsamen Handy ist der Elternbereich gesperrt – Entsperren über die Bildschirmsperre des Handys (simuliert)
         if (shared()) { confirmDlg('Elternbereich entsperren', 'Der Elternbereich ist nur für Erwachsene. Im echten Produkt fragt dein Handy hier nach Face ID, Fingerabdruck oder Gerätecode der Eltern. (Im Prototyp simuliert.)', 'Entsperren (simuliert)', function () { goParentView(); }, false); break; }
+        // R5c Plausibilität: auf dem eigenen Handy eines Kindes unter 16 ohne Zustimmung kein Elternkonto – stattdessen einladen
+        if (preview() && !E.parentSetupHere(S)) { toast('Deine Eltern richten ihr Konto auf ihrem eigenen Handy ein – über deine Einladung.'); break; }
         goParentView(); break;
       case 'to-player': ui.view = 'player'; ui.overlay = null; render(); break;
       case 'pc': ui.pc[v] = !ui.pc[v]; render(); var pcb = document.querySelector('[data-a=pc][data-v=' + v + ']'); if (pcb) pcb.focus({ preventScroll: true }); break;
-      case 'pv-consent': if (!(ui.pc.agree && ui.pc.health)) return; S.profile.parentConsent = true; S.profile.account.mode = 'family'; save(); render(); toast('Danke! Ihre Zustimmung ist gespeichert.'); break;
+      case 'pv-consent': if (!(ui.pc.agree && ui.pc.health)) return; var gc = E.giveConsent(S, S.today); if (gc.refused) { toast(gc.why); render(); return; } S = gc.state; save(); render(); toast('Danke! Ihre Zustimmung ist gespeichert.'); break;
       case 'pm-save-birth':
         if (!ui.pm || !ui.pm.birthM || !ui.pm.birthY) { toast('Bitte Monat und Jahr wählen.'); return; }
-        var saveB = function () { S.profile.birth = { m: +ui.pm.birthM, y: +ui.pm.birthY }; S.profile.age = E.ageClassFor(+ui.pm.birthY, dateOf(S.today)); filterFocus(S.profile); save(); render(); toast('Geburtsdatum gespeichert.'); };
+        var saveB = function () { var rb = E.setBirth(S, { m: +ui.pm.birthM, y: +ui.pm.birthY }, true); if (rb.refused) { toast(rb.why); return; } S = rb.state; filterFocus(S.profile); save(); render(); toast('Geburtsdatum gespeichert.'); };
         // R5b-QA H2: 16+ auf dem gemeinsamen Gerät – vorher ehrlich hinweisen (kein Zwang)
         var ageB = E.ageYears({ birth: { m: +ui.pm.birthM, y: +ui.pm.birthY } }, dateOf(S.today));
         if (shared() && ageB != null && ageB >= 16) confirmDlg(S.profile.name + ' ist dann 16', 'Ab 16 entscheidet ' + S.profile.name + ' selbst, was Sie sehen – auf diesem gemeinsamen Handy geht das aber nicht. Bitte richten Sie danach den Umzug aufs eigene Handy ein (unter „Mein Kind“). Alle Daten wandern mit.', 'Speichern', saveB, false);
@@ -5115,6 +5317,7 @@ var Illus = (function () {
           S.profile.ownAccess = { since: S.today }; save(); render(); toast(S.profile.name + ' hat jetzt einen eigenen Zugang.');
         }, false); break;
       case 'demo-16':
+        if (preview()) { toast('In der Vorschau nicht simulierbar – erst nach Zustimmung deiner Eltern.'); break; } // R5c-QA: kein Selbst-Freigeben über die Demo
         var dd16 = dateOf(S.today); S.profile.birth = { m: dd16.getMonth() + 1, y: dd16.getFullYear() - 16 }; S.profile.wasU16 = true; S.profile.age = E.ageClassFor(S.profile.birth.y, dd16); ui.tab = 'heute'; ui.view = 'player'; save(); render(); toast('16. Geburtstag simuliert.'); break;
       // Training
       case 'start-session': var pl = E.plan(S, t); if (!pl.drills.length) return; startRun(pl.drills, false); break;
@@ -5251,9 +5454,16 @@ var Illus = (function () {
         P = S.profile;
         if (ui.overlay === 'editFocus') P.focus = ui.edit.focus.slice();
         else if (ui.overlay === 'editPlayer') {
+          // R5c-QA: Geburtsdatum nur über E.setBirth – unter 16 nicht selbst auf 16+, nach Eltern-Zustimmung nur Eltern
+          var bOld = P.birth || {}, bNew = ui.edit.birthM && ui.edit.birthY ? { m: +ui.edit.birthM, y: +ui.edit.birthY } : null, bInfo = null;
+          if (!birthLocked() && bNew && (bNew.m !== bOld.m || bNew.y !== bOld.y)) {
+            var rb2 = E.setBirth(S, bNew, false); if (rb2.refused) { toast(rb2.why); return; }
+            S = rb2.state; P = S.profile; bInfo = rb2.changes.length ? rb2.changes[0].text : null;
+          }
           if (ui.edit.name && ui.edit.name.trim()) P.name = ui.edit.name.trim();
           P.position = ui.edit.position; P.position2 = ui.edit.position2 && ui.edit.position2 !== ui.edit.position ? ui.edit.position2 : null; P.foot = ui.edit.foot;
-          if (!birthLocked() && ui.edit.birthM && ui.edit.birthY) P.birth = { m: +ui.edit.birthM, y: +ui.edit.birthY }; if (!birthLocked()) P.age = ui.edit.age; filterFocus(P);
+          if (!birthLocked()) P.age = ui.edit.age; filterFocus(P);
+          if (bInfo) { ui.overlay = null; ui.edit = null; save(); render(); toast(bInfo); break; }
         } else if (ui.overlay === 'editSeason') {
           var se = ui.edit.season, ord = ['rueckrunde', 'sommerpause', 'vorbereitung', 'hinrunde', 'winterpause'].map(function (id) { var x = se[id].split('-'); return +x[0] * 100 + +x[1]; });
           for (var oi2 = 1; oi2 < ord.length; oi2++) if (ord[oi2] <= ord[oi2 - 1]) { toast('Bitte die Reihenfolge einhalten: Rückrunde → Sommerpause → Vorbereitung → Hinrunde → Winterpause.'); return; }
@@ -5278,7 +5488,7 @@ var Illus = (function () {
         S.profile.heights = S.profile.heights.filter(function (x) { return x.d !== t; }); S.profile.heights.push({ d: t, cm: cm });
         ui.newHeight = ''; save(); render(); toast('Messung gespeichert.'); break;
       case 'reset':
-        confirmDlg('Prototyp zurücksetzen?', 'Alle Eingaben, Bewertungen und Anpassungen werden gelöscht.', 'Zurücksetzen', function () {
+        confirmDlg('Prototyp zurücksetzen?', 'Setzt den Prototyp komplett zurück (im echten Produkt nicht möglich): Alle Eingaben, Bewertungen, Anpassungen und Sperren auf diesem Gerät werden gelöscht.', 'Zurücksetzen', function () {
           stopTimer(); wipe(); S = null; ui = freshUi(); render(); toast('Prototyp zurückgesetzt.');
         }); break;
       case 'dlg-no': closeDlg(); break;
@@ -5299,23 +5509,18 @@ var Illus = (function () {
       case 'demo-winter': demoWinter(); break;
       // onboarding
       case 'ob-demo': S = demoState(); save(); ui.ob = null; ui.tab = 'heute'; render(); toast('Beispiel: Leon, U15 – schau dich um!'); break;
-      case 'ob-role': ui.ob.draft.role = v; ui.ob.step = 1; renderOnboarding(); focusOb(); break;
-      case 'ob-child': var dc = ui.ob.draft; dc.childTurn = true; dc.invited = true; ui.ob.step = 1; renderOnboarding(); focusOb(); toast(dc.device === 'shared' ? 'Jetzt ist ' + dc.name + ' dran.' : 'Jetzt auf dem Handy von ' + dc.name + ' (simuliert).'); break;
+      case 'ob-start': ui.ob.step = 1; renderOnboarding(); focusOb(); break;
+      case 'ob-role': var dr = ui.ob.draft; if (dr.role !== v) { dr.verified = { contact: false, adult: false, id: false }; var keepNo = dr.pv.adultNo; dr.pv = newPv(); dr.pv.adultNo = keepNo; } dr.role = v; ui.ob.step = OB_FIRST; renderOnboarding(); focusOb(); break;
+      case 'pv-send': case 'pv-code': case 'pv-year': case 'pv-id': case 'pv-kid': case 'pv-abort': pvAction(a, v); break;
+      case 'ob-child': var dc = ui.ob.draft; dc.childTurn = true; dc.invited = true; ui.ob.step = OB_FIRST; renderOnboarding(); focusOb(); toast(dc.device === 'shared' ? 'Jetzt ist ' + dc.name + ' dran.' : 'Jetzt auf dem Handy von ' + dc.name + ' (simuliert).'); break;
       case 'ob-device': ui.ob.draft.device = v; renderOnboarding(); break;
       case 'ob-pc': ui.ob.draft[v] = !ui.ob.draft[v]; renderOnboarding(); var pcx = document.querySelector('[data-a=ob-pc][data-v=' + v + ']'); if (pcx) pcx.focus({ preventScroll: true }); break;
-      case 'ob-ask':
-        var dk = ui.ob.draft;
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dk.parentEmail.trim())) { ui.ob.err = 'Bitte gib eine gültige E-Mail-Adresse eines Elternteils ein.'; renderOnboarding(); return; }
-        ui.ob.err = ''; dk.consentAsked = true; renderOnboarding(); break;
-      case 'ob-parent-now': ui.ob.draft.parentNow = true; renderOnboarding(); focusOb(); break;
-      case 'ob-parent-back': ui.ob.draft.parentNow = false; renderOnboarding(); focusOb(); break;
-      case 'ob-parent-ok': var dp = ui.ob.draft; if (!(dp.pAgree && dp.pHealth)) return; dp.parentConsentNow = true; dp.parentNow = false; renderOnboarding(); focusOb(); toast('Danke! Die Zustimmung ist gespeichert.'); break;
+      case 'ob-ask': ui.ob.draft.consentAsked = true; renderOnboarding(); toast('Einladung für deine Eltern erstellt (simuliert).'); break;
       case 'ob-next': obNext(); break;
       case 'ob-back':
         var dob = ui.ob.draft;
-        if (dob.parentNow) { dob.parentNow = false; renderOnboarding(); break; }
-        if (ui.ob.step === 1 && dob.childTurn) { dob.childTurn = false; ui.ob.step = 2; renderOnboarding(); break; }
-        if (ui.ob.step === 1) { dob.role = null; }
+        if (ui.ob.step === OB_FIRST && dob.childTurn) { dob.childTurn = false; dob.invited = false; ui.ob.step = obSteps(dob).indexOf('p-invite'); renderOnboarding(); break; }
+        if (ui.ob.step === OB_FIRST) { dob.role = null; }
         if (ui.ob.step > 0) { ui.ob.step--; ui.ob.err = ''; renderOnboarding(); focusOb(); } break;
       case 'ob-place': var dpl = ui.ob.draft.places, pi0 = dpl.indexOf(v); if (pi0 >= 0) { if (dpl.length > 1) dpl.splice(pi0, 1); } else dpl.push(v); renderOnboarding(); break;
       case 'ob-age': ui.ob.draft.age = v; ui.ob.draft.ageManual = true; renderOnboarding(); break;
@@ -5330,7 +5535,7 @@ var Illus = (function () {
     if ((b === 'ob.birthM' || b === 'ob.birthY') && ui.ob) {
       var dd = ui.ob.draft; dd[b.slice(3)] = e.target.value;
       if (dd.birthY && !dd.ageManual) dd.age = E.ageClassFor(+dd.birthY, new Date());
-      dd.parentConsentNow = false; dd.consentAsked = false; renderOnboarding(); var f2 = document.getElementById(b === 'ob.birthM' ? 'obM' : 'obY'); if (f2) f2.focus({ preventScroll: true }); return;
+      dd.consentAsked = false; renderOnboarding(); var f2 = document.getElementById(b === 'ob.birthM' ? 'obM' : 'obY'); if (f2) f2.focus({ preventScroll: true }); return;
     }
     if ((b === 'pm.birthM' || b === 'pm.birthY') && ui.pm) { ui.pm[b.slice(3)] = e.target.value; return; }
     if ((b === 'ed.birthM' || b === 'ed.birthY') && ui.edit) {
@@ -5339,10 +5544,10 @@ var Illus = (function () {
     }
     if (b === 'ed.name' && ui.edit) { ui.edit.name = e.target.value; return; }
     if (b.indexOf('ev.') === 0 && ui.ev) { ui.ev[b.slice(3)] = e.target.value; return; }
-    if (b === 'ob.parentEmail' && ui.ob) { ui.ob.draft.parentEmail = e.target.value; return; }
+    if (b.indexOf('pv.') === 0) { var pvb = pvState(); pvb[b.slice(3)] = e.target.value; if (b === 'pv.year') { var yb = document.querySelector('[data-a=pv-year]'); if (yb) yb.disabled = !e.target.value; } return; }
     if (b.indexOf('ob.') === 0 && ui.ob) {
       ui.ob.draft[b.slice(3)] = e.target.value;
-      if (b === 'ob.name') { var dn = ui.ob.draft, n = document.getElementById('obNext'); if (n) n.disabled = obSteps(dn)[ui.ob.step] === 'p-family' ? !(e.target.value.trim() && dn.birthM && dn.birthY && dn.pAgree && dn.pHealth && draftU16(dn)) : !(e.target.value.trim() && dn.birthM && dn.birthY); }
+      if (b === 'ob.name') { var dn = ui.ob.draft, n = document.getElementById('obNext'); if (n) n.disabled = obSteps(dn)[ui.ob.step] === 'p-family' ? !(e.target.value.trim() && dn.birthM && dn.birthY && dn.pAgree && dn.pHealth && draftU16(dn) && !!dn.device && dn.verified.contact && dn.verified.adult) : !(e.target.value.trim() && dn.birthM && dn.birthY); }
     }
   });
   document.addEventListener('keydown', function (e) {
