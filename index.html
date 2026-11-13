@@ -532,6 +532,63 @@ details.hints[open]>summary::after,details.faq[open]>summary::after{transform:ro
 /* M3 (Fach): Pakete als eigener Bereich ganz unten im Elternkonto */
 .pkgzone{margin-top:40px;padding-top:12px;border-top:1px dashed var(--line)}
 .ichsec{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 6px}
+/* R5b: gemeinsames Gerät – Wechsel oben, Geräteauswahl */
+.swbtn{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:0 12px;border-radius:999px;border:1.5px solid #c7d2fe;background:#eef2ff;color:#3730a3;font-weight:700;font-size:13px;flex:none}
+.swbtn .av{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:800;font-size:13px}
+.swbtn.kid{border-color:#86efac;background:var(--accent-ll);color:#14532d;padding-left:8px}
+@media (max-width:360px){.swbtn{padding:0 9px;font-size:12px}.topbar.hasSw .logo .badge{display:none}}
+/* R5b-QA N3: ab 380 px voller Text auf dem Wechsel-Knopf („Zum Elternbereich“ / „Zu Linas Plan“), dafür ohne Badge */
+.swl{display:none}
+@media (min-width:380px){.topbar.hasSw .swl{display:inline}.topbar.hasSw .logo .badge{display:none}}
+/* R5b-QA N6: Kopfzeile der Eltern-Übersicht bricht um, kurze Werte bleiben einzeilig */
+.pvhead{flex-wrap:wrap;gap:6px}.pvhead .tag{white-space:normal;max-width:100%}
+.kv b.nw{white-space:nowrap;flex:none}.kv>span{min-width:0}
+/* R5b-QA H2 */
+.banner.s16 h3{font-size:15px}
+.devpick{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.devopt{display:flex;align-items:flex-start;gap:10px;text-align:left;min-height:56px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font:inherit;width:100%}
+.devopt b{display:block;font-size:15px}.devopt small{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px;line-height:1.35}
+.devopt .rb{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid #94a3b8;margin-top:2px;box-sizing:border-box}
+.devopt[aria-checked=true]{border-color:var(--accent);background:var(--accent-ll)}
+.devopt[aria-checked=true] .rb{border:6px solid var(--accent)}
+.devopt:disabled{opacity:.5}
+/* R5b Startbildschirm: eine große, in der Mitte geteilte Karte */
+.rolecard{display:flex;align-items:stretch;margin-top:16px;border-radius:24px;overflow:hidden;background:linear-gradient(160deg,#14532d,#15803d 55%,#22c55e);box-shadow:0 6px 18px rgba(20,83,45,.18)}
+.rolehalf{flex:1 1 0;min-width:0;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:14px 10px 16px;border:0;background:transparent;color:#fff;font:inherit;text-align:center;cursor:pointer}
+.rolehalf:active{background:rgba(255,255,255,.08)}
+.rolehalf:focus-visible{outline:3px solid #fde68a;outline-offset:-5px;border-radius:22px}
+.rolediv{flex:none;width:1.5px;margin:18px 0;background:rgba(240,253,244,.45);border-radius:2px}
+.silbox{display:block;width:100%;max-width:150px;margin:0 auto 4px}
+.sil{display:block;width:100%;height:auto}
+.rl{font-family:var(--head);font-weight:800;font-size:17px;line-height:1.2}
+.rs{font-size:13px;line-height:1.35;color:#dcfce7;margin-top:2px}
+.startnote{text-align:center;margin:10px 4px 0}
+.startdemo{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.startdemo .note{text-align:center;margin-top:4px}
+@media (max-width:360px){.rolehalf{padding:12px 6px 14px}.rl{font-size:15px}.rs{font-size:12px}.silbox{max-width:118px}}
+.hero.start{padding:16px 18px 14px}.hero.start h1{font-size:32px}
+.hero.start svg.deco{width:80px;height:80px}
+.rolecard{margin-top:14px}
+.ob .elevator{margin:14px 4px 0;text-align:center}
+@media (max-width:360px){.hero.start{padding:12px 14px 12px}.hero.start h1{font-size:28px}.hero.start p{font-size:14px}.rolecard{margin-top:12px}}
+
+/* 13.11.: zwei einzelne, kleinere Kacheln statt einer geteilten Fläche */
+.rolecard{display:flex;gap:12px;background:none;box-shadow:none;border-radius:0;overflow:visible;margin-top:14px}
+.rolehalf{border-radius:20px;background:linear-gradient(160deg,#14532d,#15803d 55%,#22c55e);box-shadow:0 4px 14px rgba(20,83,45,.18);padding:12px 8px 14px}
+.rolehalf:active{filter:brightness(1.08)}
+.silbox{max-width:104px}
+.rl{font-size:16px}.rs{font-size:12.5px}
+.ob .elevator{margin:12px 4px 0}
+@media (max-width:360px){.rolecard{gap:10px}.silbox{max-width:86px}.rl{font-size:14.5px}.rs{font-size:12px}}
+
+/* 13.11.: Kombination – gemeinsamer Rahmen „Wer bist du?“ + zwei Kacheln mit klaren Knöpfen */
+.rolewrap{margin-top:14px;padding:12px 12px 14px;border-radius:24px;background:#e3f4e8;border:1px solid #bfe3ca}
+.roleq{font-family:var(--head);font-size:19px;font-weight:800;margin:0 2px 10px;color:#14532d;text-align:center}
+.rolewrap .rolecard{margin-top:0;gap:10px}
+.rolehalf{justify-content:space-between}
+.rolehalf .rs{min-height:2.7em;display:flex;align-items:center;justify-content:center}
+.rbtn{display:block;width:100%;margin-top:8px;padding:10px 6px;border-radius:12px;background:#fff;color:#14532d;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+@media (max-width:360px){.rolewrap{padding:10px 8px 12px}.roleq{font-size:17px}.rbtn{font-size:14.5px;padding:9px 4px}}
 </style>
 </head>
 <body>
@@ -2667,7 +2724,7 @@ var Engine = (function () {
     return t;
   }
   function notifWeek(st, from) {
-    var n = notifSettings(st), out = [];
+    var n = notifSettings(st), out = [], shared = sharedDevice(st);
     for (var a = from; a < from + 7; a++) {
       var c = [], nx = eventOn(st, a + 1), tm = dayInfo(st, a + 1, phaseOf(st, a + 1)), y = dayInfo(st, a - 1, phaseOf(st, a - 1)), pl = plan(st, a);
       if (n.spieltag && nx) c.push('spieltag');
@@ -2675,10 +2732,60 @@ var Engine = (function () {
       // „Eine kurze Frage wartet“ nur, wenn wirklich eine fällig ist: Gesundheitsfragen erst mit Einwilligung, nur nach Spiel (Spiel-Feedback) oder harter Woche – nicht nach jedem Teamtraining
       if (n.fragen && healthOk(st) && eventOn(st, a - 1) && !(st.matches && st.matches[a - 1]) && !absenceOn(st, a)) c.push('fragen');
       if (n.training && pl.drills.length && !pl.optional) c.push('training');
-      var k = c[0], txt = k ? NOTIF_TXT[k] + (k === 'spieltag' && c.indexOf('tasche') >= 0 ? ' Tasche gepackt?' : '') : null;
-      out.push(k ? { day: a, kind: k, time: hhmm(notifTime(n, a)), text: txt, bundled: c.length - 1 } : { day: a, kind: null, bundled: 0 });
+      // R5b: gemeinsames Gerät → Kind und Eltern teilen sich ein Handy: Eltern-Hinweise zählen mit, höchstens 1 Nachricht pro Tag gesamt, alles neutral
+      if (shared && (st.notifs || []).some(function (x) { return x.day === a; })) c.unshift('eltern');
+      var k = c[0], txt = !k ? null : shared ? NOTIF_SHARED_TXT[k] : NOTIF_TXT[k] + (k === 'spieltag' && c.indexOf('tasche') >= 0 ? ' Tasche gepackt?' : '');
+      out.push(k ? { day: a, kind: k, time: hhmm(notifTime(n, a)), text: txt, bundled: c.length - 1, to: shared ? 'eltern-handy' : 'kind' } : { day: a, kind: null, bundled: 0 });
     }
     return out;
+  }
+
+  // ---------- R5b: Kind ohne eigenes Handy – gemeinsames Gerät ('shared') oder eigenes Handy ('own') ----------
+  // Nur unter 16 wählbar; ab 16 wird ein eigenes Konto empfohlen (Teilen-Regeln ab 16). Umzug aufs eigene Handy behält alle Daten.
+  // Keine Sperre/Code: Auf dem gemeinsamen Gerät können Eltern technisch alles sehen – das sagen wir dem Kind ehrlich (einmalig + unter Eltern & Teilen).
+  var DEVICES = ['shared', 'own'];
+  var SHARED_DEVICE_TXT = 'Du nutzt Fokus11 auf dem Handy deiner Eltern. Sie können hier alles sehen, was du einträgst.';
+  var SHARED_16_TXT = 'Ab 16 empfehlen wir dir ein eigenes Handy für Fokus11 – dann entscheidest du selbst, was deine Eltern sehen. Alles kommt mit.';
+  // R5b-QA H2: 16. Geburtstag auf dem gemeinsamen Gerät – ehrlich, Empfehlung + Erinnerung, kein Zwang
+  var SHARED_TURNED16_TXT = 'Du bist jetzt 16. Solange du das Handy deiner Eltern nutzt, können sie hier alles sehen. Mit einem eigenen Handy entscheidest du selbst, was sie sehen.';
+  var SHARED_MOVE_TXT = 'Zieh auf dein eigenes Handy um, damit du selbst entscheidest. Deine Eltern starten den Umzug im Elternbereich unter „Mein Kind“ – alles kommt mit.';
+  var SHARED16_REMIND = 7; // Tage bis zur nächsten Erinnerung [Vorschlag – Go nötig]
+  // R5b-QA M2: Zusatz zu „sehen sie nie/nicht“ auf dem gemeinsamen Gerät
+  var SHARED_ALSO_TXT = 'Weil du das Handy deiner Eltern nutzt, könnten sie es hier aber öffnen.';
+  var SHARED_ALSO_PARENT_TXT = 'Weil Fokus11 auf diesem Handy läuft, könnten Sie es hier aber öffnen.';
+  var SHARED_BAG_TXT = 'Deine Eltern sehen die Tasche nicht in ihrer Übersicht. Weil du ihr Handy nutzt, könnten sie sie hier aber öffnen.';
+  // neutral für das Eltern-Handy: keine Namen, keine Gesundheit, keine Du-Ansprache an das Kind
+  var NOTIF_SHARED_TXT = { eltern: NOTIF_PARENT_TXT, spieltag: 'Morgen ist Spieltag – kurz reinschauen.', tasche: 'Tasche für morgen packen?', fragen: 'Eine kurze Frage wartet in Fokus11.', training: 'Der Plan für heute ist da.' };
+  function deviceOf(st) { var p = (st && st.profile) || st || {}; return p.device === 'shared' ? 'shared' : 'own'; }
+  function sharedDevice(st) { return deviceOf(st) === 'shared'; }
+  function defaultDevice(u16) { return 'own'; }
+  function canShareDevice(st) { return under16(st); }
+  // Teen-Hinweis nach dem 16. Geburtstag: auf dem gemeinsamen Gerät nie „entscheidest allein“, sondern ehrlich + Umzug empfehlen.
+  function shared16Due(st) { var p = st.profile || {}; return sharedDevice(st) && !under16(st) && (p.shared16Later == null || st.today >= p.shared16Later); }
+  function shared16Later(state, today) { var st = clone(state), t = today != null ? today : st.today; st.profile.shared16Later = t + SHARED16_REMIND; return { state: st, changes: [] }; }
+  function teen16Note(st) {
+    var p = st.profile || {};
+    if (sharedDevice(st)) return under16(st) || !shared16Due(st) ? null : { kind: 'shared', title: SHARED_TURNED16_TXT, sub: SHARED_MOVE_TXT };
+    if (p.turned16 != null && !p.turned16Seen) return { kind: 'own', title: 'Ab heute entscheidest du allein, was deine Eltern sehen.', sub: 'Alles Teilen ist jetzt aus. Du kannst es unter Ich → Eltern & Teilen wieder einschalten.' };
+    return null;
+  }
+  function parent16Note(st, name) {
+    var p = st.profile || {};
+    if (sharedDevice(st) && !under16(st)) return name + ' ist 16. Bitte richten Sie den Umzug auf ein eigenes Handy ein – dann entscheidet ' + name + ' selbst, was Sie sehen. Solange Fokus11 auf diesem Handy läuft, können Sie hier alles sehen.';
+    if (p.turned16 != null) return 'Seit dem 16. Geburtstag entscheidet ' + name + ' allein, was Sie hier sehen.';
+    return null;
+  }
+  function setDevice(state, device, today) {
+    if (DEVICES.indexOf(device) < 0) return { state: state, changes: [], refused: true, why: 'Unbekannte Auswahl.' };
+    if (deviceOf(state) === device) return { state: state, changes: [] };
+    if (device === 'shared' && !canShareDevice(state)) return { state: state, changes: [], refused: true, why: SHARED_16_TXT };
+    var st = clone(state), p = st.profile, t = today != null ? today : st.today;
+    p.device = device; p.deviceSince = t;
+    if (device === 'shared') { p.sharedSeen = false; delete p.ownAccess; }
+    else { p.ownAccess = { since: t }; delete p.sharedSeen; delete p.shared16Later; if (p.turned16 != null && !under16(st)) p.turned16Seen = false; }
+    var why = device === 'shared' ? 'Fokus11 läuft jetzt auf dem Handy der Eltern. Plan und alle Einträge bleiben gleich.' :
+      'Fokus11 ist auf das eigene Handy umgezogen. Plan und alle Einträge sind mitgekommen.';
+    return { state: st, changes: [{ kind: 'info', text: why }] };
   }
 
   // ---------- Jahreszeiten-Hinweise (Pilot: nur Text) ----------
@@ -2715,13 +2822,14 @@ var Engine = (function () {
     var g = posGroup({ position: position }); return (POS_PRIO[g] || []).indexOf(id) >= 0 ? 'oft wichtig für ' + GROUP_LABEL[g] : null;
   }
 
-  var STATE_V = 6;
+  var STATE_V = 7;
   function newState(profile, today, base) {
     if (!profile.place) profile.place = { ort: 'garten', people: 1 };
     if (profile.place.people == null) profile.place = { ort: profile.place.ort || 'garten', people: profile.place.partner ? 2 : 1 };
     if (!profile.places) profile.places = placesOf(profile);
     if (!profile.trainTime) profile.trainTime = '16:00';
     if (!profile.notif) profile.notif = notifDefaults(profile.age);
+    if (profile.device !== 'shared') profile.device = 'own';
     return { v: STATE_V, base: base || '2026-11-09', profile: profile, today: today, created: today, calibSkip: false, ratings: {}, swaps: {}, easier: {}, mods: {}, pains: [], painLog: [], checkins: [], weekly: [],
       morning: {}, matches: {}, absences: [], sessions: [], done: {}, activities: [], food: {}, notifs: [], skipped: {}, easyStreak: 0, lastChanges: null, patternAdj: {},
       events: [], teamOff: {}, team: {}, place: {}, skipIds: {}, injuries: [], appts: [], teamSkip: {}, offerOn: {}, bag: {} };
@@ -2772,13 +2880,20 @@ var Engine = (function () {
     Object.keys(st.offerOn).forEach(function (k) { if (dayInfo(st, +k, phaseOf(st, +k)).offerDropped) delete st.offerOn[k]; });
     return st;
   }
+  // v6 → v7 (R5b): Geräte-Modus; alle bisherigen Stände nutzten ein eigenes Handy (Einladung/QR) – Daten bleiben unverändert
+  function migrate7(o) {
+    var st = clone(o); st.v = 7;
+    if (st.profile.device !== 'shared') st.profile.device = 'own';
+    return st;
+  }
   function migrate(o) {
     if (!o || !o.profile) return null;
     if (o.v === STATE_V) return o;
-    if (o.v === 5) return migrate6(o);
-    if (o.v === 4) return migrate6(migrate5(o));
+    if (o.v === 6) return migrate7(o);
+    if (o.v === 5) return migrate7(migrate6(o));
+    if (o.v === 4) return migrate7(migrate6(migrate5(o)));
     if (o.v !== 3) return null;
-    return migrate6(migrate5(migrate4(o)));
+    return migrate7(migrate6(migrate5(migrate4(o))));
   }
   function migrate4(o) {
     var st = clone(o), p = st.profile, ageI = AGES.indexOf(p.age);
@@ -2840,7 +2955,11 @@ var Engine = (function () {
     placeInfo: placeInfo, placesOf: placesOf, lightInfo: lightInfo, sunsetMin: sunsetMin, exampleWeather: exampleWeather, hhmm: hhmm, hm: hm,
     SKIP_REASONS: SKIP_REASONS, setTeamSkip: setTeamSkip, replacementOffer: replacementOffer, setOffer: setOffer, bagFor: bagFor, toggleBag: toggleBag,
     notifDefaults: notifDefaults, notifSettings: notifSettings, notifWeek: notifWeek, NOTIF_TXT: NOTIF_TXT, NOTIF_PARENT_TXT: NOTIF_PARENT_TXT, seasonHint: seasonHint,
-    EQUIP: EQUIP, EQUIP_RULE: EQUIP_RULE, equipNeeds: equipNeeds, focusHint: focusHint, soloLevel: soloLevel, POS_PRIO: POS_PRIO, GROUP_LABEL: GROUP_LABEL, PHYSIO_KEEP: PHYSIO_KEEP, SKIP_KEEP: SKIP_KEEP, ARZT_KEEP: ARZT_KEEP, EXAM_KEEP: EXAM_KEEP, BAG_KEEP: BAG_KEEP, KEEP_PROPOSAL: KEEP_PROPOSAL, LIGHT_BUFFER: LIGHT_BUFFER, SUNSET_HALF: SUNSET_HALF, SUNSET_TABLE_V: SUNSET_TABLE_V, DARK_BAN: DARK_BAN, HEAD_EQUIP_ALT: HEAD_EQUIP_ALT, offerStillOk: offerStillOk, dstOn: dstOn
+    EQUIP: EQUIP, EQUIP_RULE: EQUIP_RULE, equipNeeds: equipNeeds, focusHint: focusHint, soloLevel: soloLevel, POS_PRIO: POS_PRIO, GROUP_LABEL: GROUP_LABEL, PHYSIO_KEEP: PHYSIO_KEEP, SKIP_KEEP: SKIP_KEEP, ARZT_KEEP: ARZT_KEEP, EXAM_KEEP: EXAM_KEEP, BAG_KEEP: BAG_KEEP, KEEP_PROPOSAL: KEEP_PROPOSAL, LIGHT_BUFFER: LIGHT_BUFFER, SUNSET_HALF: SUNSET_HALF, SUNSET_TABLE_V: SUNSET_TABLE_V, DARK_BAN: DARK_BAN, HEAD_EQUIP_ALT: HEAD_EQUIP_ALT, offerStillOk: offerStillOk, dstOn: dstOn,
+    // R5b
+    DEVICES: DEVICES, deviceOf: deviceOf, sharedDevice: sharedDevice, defaultDevice: defaultDevice, canShareDevice: canShareDevice, setDevice: setDevice,
+    SHARED_DEVICE_TXT: SHARED_DEVICE_TXT, SHARED_16_TXT: SHARED_16_TXT, SHARED_TURNED16_TXT: SHARED_TURNED16_TXT, SHARED_MOVE_TXT: SHARED_MOVE_TXT, SHARED16_REMIND: SHARED16_REMIND,
+    SHARED_ALSO_TXT: SHARED_ALSO_TXT, SHARED_ALSO_PARENT_TXT: SHARED_ALSO_PARENT_TXT, shared16Due: shared16Due, shared16Later: shared16Later, teen16Note: teen16Note, parent16Note: parent16Note, SHARED_BAG_TXT: SHARED_BAG_TXT, NOTIF_SHARED_TXT: NOTIF_SHARED_TXT
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
@@ -3011,7 +3130,43 @@ var Illus = (function () {
     return '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '" role="img" aria-label="QR-Code (im Prototyp simuliert)"><rect width="' + size + '" height="' + size + '" fill="#fff"/>' + fin(0, 0) + fin(14, 0) + fin(0, 14) + s + '</svg>';
   }
 
-  return { diagram: diagram, picto: picto, forDrill: forDrill, recipe: recipe, foodIcon: foodIcon, mini: mini, qr: qr, MI: MI, GCOL: GCOL, POSES: P };
+  // R5b Startbildschirm: zwei schlichte, einfarbige Silhouetten (eigene Formen, geschlechtsneutral).
+  // Gleiche Bodenlinie (y=140) und gleicher Maßstab: das Kind ist sichtbar kleiner, mit größerem Kopf und kürzeren Gliedmaßen
+  // (ca. 4,5 Kopflängen); die erwachsene Person ca. 7,5 Kopflängen.
+  function sil(body, label, col) {
+    return '<svg class="sil" viewBox="0 0 120 146" role="img" aria-label="' + label + '"><g fill="' + col + '" stroke="' + col + '" stroke-linecap="round" stroke-linejoin="round">' + body + '</g></svg>';
+  }
+  function L(pts, w) { var d = ''; for (var i = 0; i < pts.length; i += 2) d += (i ? 'L' : 'M') + pts[i] + ' ' + pts[i + 1]; return '<path d="' + d + '" fill="none" stroke-width="' + w + '"/>'; }
+  // Arm/Bein mit schmaler Kontur in Hintergrundfarbe – trennt Gliedmaßen sichtbar vom Rumpf (Piktogramm-Stil)
+  function Lo(pts, w, bg) { return L(pts, w + 3.2).replace('stroke-width', 'stroke="' + bg + '" stroke-width') + L(pts, w); }
+  function silPlayer(col, bg) {
+    col = col || '#f0fdf4'; bg = bg || '#166534';
+    var b = '';
+    b += '<ellipse cx="60" cy="141" rx="34" ry="2.6" stroke="none" opacity=".35"/>';                         // Bodenschatten
+    b += L([50, 98, 49.5, 118, 49, 135], 10) + L([48.5, 137, 56.5, 137.5], 7);                                   // Standbein + Fuß
+    b += L([59, 96, 71, 104.5, 78.5, 116], 10) + L([76, 117, 86.5, 115.5], 7);                                   // Bein angehoben, Fuß auf dem Ball
+    b += '<path d="M44 72Q44 64 52 64H58Q66 64 66 72L64.5 100H45.5Z" stroke-width="2"/>' + L([55, 59, 55, 65], 6); // Rumpf (kurz) + Hals
+    b += Lo([45.5, 70, 32.5, 82, 45, 94], 7.5, bg);                                                               // Hand in der Hüfte
+    b += Lo([64.5, 70, 71, 83, 73, 95.5], 7.5, bg);                                                               // Arm locker
+    b += '<circle cx="55" cy="50" r="12.5" stroke="none"/>';                                                      // Kopf (groß)
+    b += '<circle cx="85" cy="128.5" r="10.5" stroke="' + bg + '" stroke-width="1.6"/><path d="M85 124l4.3 3.1-1.6 5h-5.4l-1.6-5z" fill="' + bg + '" stroke="none"/>'; // Ball
+    return sil(b, 'Silhouette: Kind mit Fuß auf dem Ball, Hand in der Hüfte', col);
+  }
+  function silParent(col, bg) {
+    col = col || '#f0fdf4'; bg = bg || '#166534';
+    var b = '';
+    b += '<ellipse cx="60" cy="141" rx="30" ry="2.6" stroke="none" opacity=".35"/>';
+    b += L([54.5, 80, 53, 108, 52, 135], 10.5) + L([51.5, 137, 44.5, 137.5], 6.5);                               // Bein links
+    b += L([65.5, 80, 67, 108, 68, 135], 10.5) + L([68.5, 137, 75.5, 137.5], 6.5);                               // Bein rechts
+    b += '<path d="M47 37Q48 30.5 54 30.5H66Q72 30.5 73 37L70.5 84H49.5Z" stroke-width="2.5"/>';                // Rumpf (breite Schultern, schmaler zur Hüfte)
+    b += L([60, 22, 60, 30], 7);                                                                                  // Hals
+    b += Lo([48, 36, 41.5, 59, 42, 81], 7.5, bg);                                                                 // Arm locker
+    b += Lo([72, 36, 78.5, 57, 67.5, 60], 7.5, bg);                                                               // Arm angewinkelt, Handy
+    b += '<rect x="61.5" y="46" width="9.5" height="15" rx="2" transform="rotate(-12 66 53.5)" stroke="' + bg + '" stroke-width="1.6"/>';
+    b += '<circle cx="60" cy="15.5" r="8.5" stroke="none"/>';                                                     // Kopf (klein)
+    return sil(b, 'Silhouette: erwachsene Person mit Handy', col);
+  }
+  return { silPlayer: silPlayer, silParent: silParent, diagram: diagram, picto: picto, forDrill: forDrill, recipe: recipe, foodIcon: foodIcon, mini: mini, qr: qr, MI: MI, GCOL: GCOL, POSES: P };
 })();
 </script>
 <!-- UI -->
@@ -3191,14 +3346,16 @@ var Illus = (function () {
     var mainEl = document.getElementById('main'), key = viewKey();
     if (mainEl && render.lastKey) ui.scroll[render.lastKey] = mainEl.scrollTop;
     if (ui.view === 'parent') {
-      $app.innerHTML = '<div class="topbar parenttop"><div class="logo" aria-label="Fokus11 Elternkonto">Fokus<b>11</b> <span class="badge par">Elternkonto</span></div>' +
-        '<button class="helpbtn" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + 'Hilfe</button></div>' +
+      $app.innerHTML = '<div class="topbar parenttop' + (shared() ? ' hasSw' : '') + '"><div class="logo" aria-label="Fokus11 ' + (shared() ? 'Elternbereich' : 'Elternkonto') + '">Fokus<b>11</b> <span class="badge par">' + (shared() ? 'Eltern' : 'Elternkonto') + '</span></div>' +
+        '<div class="row" style="gap:6px"><button class="helpbtn" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + 'Hilfe</button>' +
+        (shared() ? '<button class="swbtn kid" data-a="to-player" aria-label="' + esc(planOf(S.profile.name)) + '"><span class="av" aria-hidden="true">' + esc((S.profile.name || '?').charAt(0).toUpperCase()) + '</span><span>' + ((S.profile.name || '').length <= 8 ? '<span class="swl">Zu ' + esc(gen(S.profile.name)) + '&nbsp;</span>' : '') + 'Plan</span></button>' : '') + '</div></div>' +
         '<main id="main" tabindex="-1">' + viewParent() + '</main>';
     } else {
       var main = { heute: viewHeute, woche: viewWoche, essen: viewEssen, profil: viewProfil }[ui.tab]();
       $app.innerHTML =
-        '<div class="topbar"><div class="logo" aria-label="Fokus11 Prototyp">Fokus<b>11</b> <span class="badge">Prototyp</span></div>' +
+        '<div class="topbar' + (shared() ? ' hasSw' : '') + '"><div class="logo" aria-label="Fokus11 Prototyp">Fokus<b>11</b> <span class="badge">Prototyp</span></div>' +
         '<div class="row" style="gap:6px"><span class="sub">' + esc(E.DAY_SHORT[E.wd(S.today)]) + ', ' + fmt(S.today) + '</span><button class="helpbtn" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + 'Hilfe</button>' +
+        (shared() ? '<button class="swbtn" data-a="to-parent" aria-label="Zum Elternbereich"><span><span class="swl">Zum&nbsp;</span>Eltern<span class="swl">bereich</span></span></button>' : '') +
         '<button class="avbtn" data-a="tab" data-v="profil" aria-label="Ich – Profil und Einstellungen">' + esc((S.profile.name || '?').charAt(0).toUpperCase()) + '</button></div></div>' +
         '<main id="main" tabindex="-1">' + main + '</main>' +
         '<nav class="tabbar" role="tablist" aria-label="Hauptnavigation">' +
@@ -3250,6 +3407,10 @@ var Illus = (function () {
   }
   function typeShort(inf) { return inf.label === 'Turnier' ? 'Turn.' : inf.team && (inf.type === 'MD-1' || inf.type === 'MD+1') ? 'Team' : SHORT_T[inf.type]; }
   function u16() { return E.under16(S); }
+  // R5b: gemeinsames Gerät (Kind ohne eigenes Handy)
+  function shared() { return !!S && E.sharedDevice(S); }
+  function gen(n) { n = n || ''; return /[sßxz]$/i.test(n) ? n + '’' : n + 's'; }
+  function planOf(n) { return 'Zu ' + gen(n) + ' Plan'; }
   function preview() { return !E.healthOk(S); }
   function placeLine(ctx) { return E.PLACE_LABEL[ctx.ort] + ' · ' + E.peopleLabel(E.peopleOf(ctx)); }
   // Ort + Personen (I2): Personen nur als Zahl, pro Einheit änderbar
@@ -3289,7 +3450,12 @@ var Illus = (function () {
     if (!S.loopSeen && !(t - S.loopFirst >= 3)) h += '<p class="loopline">Nach dem Training 1 Zahl, manchmal morgens ein kurzer Check → dein Plan passt sich an. <button class="linkbtn sm" data-a="dismiss-loop">OK</button></p>';
     // Hinweise sammeln: Sicherheit (p ≤ 1) sichtbar, fällige Fragen (max. 1), alles andere eingeklappt
     var B = [];
-    if (p.turned16 != null && !p.turned16Seen) B.push({ p: 1, h: '<section class="banner info">' + IC.info + '<div style="flex:1"><h3>Ab heute entscheidest du allein, was deine Eltern sehen.</h3><p class="sub" style="margin:4px 0 0">Alles Teilen ist jetzt aus. Du kannst es unter Ich → Eltern & Teilen wieder einschalten.</p><button class="linkbtn" data-a="dismiss-16">Verstanden</button></div></section>' });
+    // R5b: einmaliger, ehrlicher Hinweis auf dem gemeinsamen Gerät
+    if (shared() && p.sharedSeen === false) B.push({ p: 1, h: '<section class="banner info sharedb">' + IC.info + '<div style="flex:1"><h3>' + esc(E.SHARED_DEVICE_TXT) + '</h3><p class="sub" style="margin:4px 0 0">Das steht auch unter Ich → Eltern & Teilen. Wenn du ein eigenes Handy bekommst, ziehst du um – alles kommt mit.</p><button class="linkbtn" data-a="dismiss-shared">Verstanden</button></div></section>' });
+    // R5b-QA H2: 16+ auf dem gemeinsamen Gerät – ehrlich, sichtbar (p 1), Erinnerung statt Zwang
+    var t16 = E.teen16Note(S);
+    if (t16) B.push({ p: 1, h: '<section class="banner info' + (t16.kind === 'shared' ? ' sharedb s16' : '') + '">' + IC.info + '<div style="flex:1"><h3>' + esc(t16.title) + '</h3><p class="sub" style="margin:4px 0 0">' + esc(t16.sub) + '</p>' +
+      (t16.kind === 'shared' ? '<button class="linkbtn" data-a="later-16">In ' + E.SHARED16_REMIND + ' Tagen wieder erinnern</button>' : '<button class="linkbtn" data-a="dismiss-16">Verstanden</button>') + '</div></section>' });
     if (preview()) B.push({ p: 1, h: '<section class="banner consent">' + IC.info + '<div style="flex:1"><h3>Vorschau – deine Eltern müssen noch zustimmen</h3><p class="sub" style="margin:4px 0 0">Deinen Plan siehst du schon. Morgen-Check, Schmerz und Schlaf werden erst nach Zustimmung deiner Eltern gespeichert und im Plan berücksichtigt.</p>' +
       (p.account.requested != null ? '<p class="note" style="margin-top:6px">Anfrage verschickt am ' + fmt(p.account.requested) + ' (simuliert).</p>' : '<button class="btn sec sm mt8" data-a="ask-consent">Zustimmung bei Eltern anfragen</button>') + '</div></section>' });
     var pp = preview() && ui.previewPain && t >= ui.previewPain.day && t <= ui.previewPain.day + 2 ? ui.previewPain : null;
@@ -3634,13 +3800,14 @@ var Illus = (function () {
   }
   function parentSummary(parentMode) {
     var p = S.profile, ov = E.parentOverview(S), name = esc(p.name);
-    var rows = ov.rows.map(function (r) { return '<div class="kv"><span>' + esc(r.label) + (r.fixed ? ' <span class="tag lock">immer sichtbar</span>' : '') + '</span><b class="wrap">' + esc(r.value) + '</b></div>'; }).join('');
+    var rows = ov.rows.map(function (r) { return '<div class="kv"><span>' + esc(r.label) + (r.fixed ? ' <span class="tag lock">immer sichtbar</span>' : '') + '</span><b class="' + (String(r.value).length <= 12 ? 'nw' : 'wrap') + '">' + esc(r.value) + '</b></div>'; }).join('');
     var pains = ov.pains.length ? '<h3 class="mt12" style="font-size:15px">Gemeldete Schmerzen' + (ov.painFixed ? ' <span class="tag lock">immer sichtbar</span>' : '') + '</h3><ul style="margin:6px 0 0;padding-left:18px">' +
       ov.pains.map(function (x) { return '<li>' + fmtY(x.day) + (x.region ? ' – ' + esc(E.REGION_LABEL[x.region]) : '') + '</li>'; }).join('') + '</ul>' : (ov.painFixed ? '<p class="sub mt8" style="font-size:13px">Gemeldete Schmerzen: keine.</p>' : '');
     var inj = ov.injuries.length ? '<h3 class="mt12" style="font-size:15px">Ärztliche Pausen</h3><ul style="margin:6px 0 0;padding-left:18px">' + ov.injuries.map(function (x) { return '<li>' + esc(injLabel(x)) + '<br><span class="sub" style="font-size:12.5px">' + esc(injStatus(x)) + '</span></li>'; }).join('') + '</ul>' : '';
     var access = ov.ownAccess ? '<p class="note">' + name + ' hat seit ' + fmtY(ov.ownAccess.since) + ' einen eigenen Zugang.</p>' :
-      (parentMode && ov.u16 ? '<button class="btn sec block mt12" data-a="own-access">Eigenen Zugang für ' + name + ' einrichten</button><p class="note">Sie als Eltern entscheiden, wann ' + name + ' einen eigenen Zugang bekommt. Alle Daten wandern mit.</p>' : '');
-    return '<div class="parentview" aria-label="Eltern-Ansicht"><div class="row between"><h3>' + (parentMode ? 'Übersicht' : 'Eltern-Ansicht') + '</h3><span class="tag">' + (ov.u16 ? 'Grundübersicht + Geteiltes' : 'nur Geteiltes') + '</span></div>' +
+      (parentMode && ov.u16 && shared() ? '<p class="note">Umzug aufs eigene Handy: unter „Mein Kind“ → „Wie nutzt ' + name + ' Fokus11?“. Alle Daten wandern mit.</p>' :
+      parentMode && ov.u16 ? '<button class="btn sec block mt12" data-a="own-access">Eigenen Zugang für ' + name + ' einrichten</button><p class="note">Sie als Eltern entscheiden, wann ' + name + ' einen eigenen Zugang bekommt. Alle Daten wandern mit.</p>' : '');
+    return '<div class="parentview" aria-label="Eltern-Ansicht"><div class="row between pvhead"><h3>' + (parentMode ? 'Übersicht' : 'Eltern-Ansicht') + '</h3><span class="tag">' + (ov.u16 ? 'Grundübersicht + Geteiltes' : 'nur Geteiltes') + '</span></div>' +
       (rows ? '<div class="mt8">' + rows + '</div>' : '<p class="sub mt8">' + (parentMode ? 'Sie sehen gerade nur, dass ' + name + ' Fokus11 nutzt.' : 'Deine Eltern sehen gerade nur, dass du Fokus11 nutzt.') + '</p>') + pains + inj + access +
       '<p class="note">Trainer sehen Schmerzen, Verletzungen und Physio nie. Schmerzmeldungen und Nachrichten werden nach ' + E.PAIN_KEEP + ' Tagen gelöscht. Im Prototyp wird nichts übertragen oder verschickt.</p></div>';
   }
@@ -3799,19 +3966,21 @@ var Illus = (function () {
       h += subHead('Benachrichtigungen') + notifPage(false);
     } else if (id === 'eltern') {
       h += subHead('Eltern & Teilen');
+      if (shared()) h += '<section class="banner info sharedb">' + IC.info + '<div><b>' + esc(E.SHARED_DEVICE_TXT) + '</b>' + (isU16 ? '<p class="sub" style="margin:4px 0 0">Die Regeln unten gelten für ein eigenes Handy. Wenn du eins bekommst, ziehen deine Eltern Fokus11 dorthin um – alle Daten kommen mit.</p>' : '<p class="sub" style="margin:4px 0 0">' + esc(E.SHARED_MOVE_TXT) + '</p>') + '</div></section>';
       h += '<section class="card" aria-labelledby="shT"><h3 id="shT">Was deine Eltern sehen</h3>';
       if (isU16) {
         h += '<p class="sub" style="margin:2px 0 6px">Bis 16 sehen deine Eltern in ihrem Elternkonto immer eine Grundübersicht:</p>' + lockRow('Trainings- & Ruhetage') + lockRow('Anzahl Einheiten') + lockRow('Gemeldete Schmerzen (Datum, Körperstelle)') +
           '<p class="sub" style="margin:10px 0 2px;font-weight:600;color:var(--ink2)">Zusätzlich teilen – du entscheidest:</p>' + trow('sleep', 'Schlaf') + trow('answers', 'Einzelne Antworten', 'z. B. wie anstrengend eine Einheit war') +
-          '<p class="note">Einen Hinweis aufs Handy bekommen deine Eltern nur, wenn dieselbe Stelle wiederholt weh tut oder du „Kopf“ meldest – nicht bei jedem Schmerz. Tasche, Termine bei Physio/Arzt und Gründe fürs Fehlen sehen sie nie.</p>';
+          '<p class="note">Einen Hinweis aufs Handy bekommen deine Eltern nur, wenn dieselbe Stelle wiederholt weh tut oder du „Kopf“ meldest – nicht bei jedem Schmerz. Tasche, Termine bei Physio/Arzt und Gründe fürs Fehlen sehen sie ' + (shared() ? 'nicht in ihrer Übersicht. ' + esc(E.SHARED_ALSO_TXT) : 'nie.') + '</p>';
       } else {
-        h += '<p class="sub" style="margin:2px 0 6px">Du bist 16 oder älter: Deine Eltern sehen nur, was du teilst – alles ist zunächst aus.</p>' + trow('days', 'Trainings- & Ruhetage') + trow('sessions', 'Anzahl Einheiten') + trow('pain', 'Gemeldete Schmerzen') + trow('sleep', 'Schlaf') + trow('answers', 'Einzelne Antworten') +
+        h += '<p class="sub" style="margin:2px 0 6px">' + (shared() ? 'Du bist 16 oder älter: In ihrer Übersicht sehen deine Eltern nur, was du teilst. Weil du ihr Handy nutzt, können sie hier aber alles sehen – mit einem eigenen Handy entscheidest du selbst.' : 'Du bist 16 oder älter: Deine Eltern sehen nur, was du teilst – alles ist zunächst aus.') + '</p>' + trow('days', 'Trainings- & Ruhetage') + trow('sessions', 'Anzahl Einheiten') + trow('pain', 'Gemeldete Schmerzen') + trow('sleep', 'Schlaf') + trow('answers', 'Einzelne Antworten') +
           trow('painNotify', 'Eltern bei wiederholtem Schmerz benachrichtigen', 'Standardmäßig aus – du kannst es einschalten.') +
-          (p.account.parentInvited ? '<p class="note">Deine Eltern haben ein Elternkonto (auf deine Einladung).</p>' : '<button class="btn ghost sm mt8" data-a="invite-parents">Eltern einladen (simuliert)</button><p class="note">Ab 16 haben Eltern nur ein Konto, wenn du sie einlädst.</p>');
+          (shared() ? '<p class="note">Deine Eltern haben den Elternbereich auf diesem Handy.</p>' : p.account.parentInvited ? '<p class="note">Deine Eltern haben ein Elternkonto' + (p.account.invitedByTeen ? ' (auf deine Einladung)' : '') + '.</p>' : '<button class="btn ghost sm mt8" data-a="invite-parents">Eltern einladen (simuliert)</button><p class="note">Ab 16 haben Eltern nur ein Konto, wenn du sie einlädst.</p>');
       }
       h += '<div class="trow" style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px"><div style="flex:1"><div style="font-weight:600">Vorschau: Was sehen meine Eltern?</div><div class="sub" style="font-size:12.5px">So sieht es in ihrem Elternkonto aus</div></div>' +
         '<button class="switch" role="switch" aria-checked="' + ui.parentView + '" aria-label="Was sehen meine Eltern" data-a="toggle-parent"></button></div>' + (ui.parentView ? parentSummary() : '') +
-        (isU16 || p.account.parentInvited ? '<button class="btn ghost block mt12" data-a="to-parent">Ansicht wechseln: Elternkonto (simuliert eigenes Gerät)</button><p class="note" style="margin-top:4px">Im echten Produkt nutzen Eltern ihr eigenes Konto auf ihrem eigenen Gerät – nicht auf deinem Handy.</p>' : '') + '</section>';
+        (shared() ? '<button class="btn ghost block mt12" data-a="to-parent">Zum Elternbereich</button><p class="note" style="margin-top:4px">Ihr nutzt ein Handy gemeinsam: Hier wechselst du in den Bereich deiner Eltern.</p>' :
+          isU16 || p.account.parentInvited ? '<button class="btn ghost block mt12" data-a="to-parent">Ansicht wechseln: Elternkonto (simuliert eigenes Gerät)</button><p class="note" style="margin-top:4px">Im echten Produkt nutzen Eltern ihr eigenes Konto auf ihrem eigenen Gerät – nicht auf deinem Handy.</p>' : '') + '</section>';
       if (S.notifs.length) h += '<section class="card" aria-labelledby="nfT"><div class="row between"><h3 id="nfT">Hinweise an deine Eltern</h3><span class="tag">nicht verschickt</span></div>' +
         S.notifs.slice(-3).reverse().map(function (n) { return '<div class="notif">' + IC.bell + '<div><div class="sub" style="font-size:12px">An deine Eltern · ' + fmtY(n.day) + '</div><div>' + esc(n.text) + '</div></div></div>'; }).join('') +
         '<p class="note">Auf dem Sperrbildschirm steht nur „' + esc(E.NOTIF_PARENT_TXT) + '“. Im Prototyp wird nichts verschickt.</p></section>';
@@ -3857,12 +4026,14 @@ var Illus = (function () {
   function notifPage(parent) {
     var n = E.notifSettings(S), h = '', wk = E.notifWeek(S, S.today);
     if (parent) {
-      return '<section class="card"><h3>So erreichen wir Sie</h3><p class="sub" style="margin:4px 0 0">Sie bekommen nur dann eine Nachricht, wenn eine Stelle wiederholt weh tut, „Kopf“ gemeldet wird oder es im Wiedereinstieg wieder weh tut – höchstens eine pro Tag. Sicherheitshinweise stehen immer auch hier in der App.</p></section>' +
+      return (shared() ? '<div class="banner info">' + IC.info + '<div>Gemeinsames Handy: Auch die Mitteilungen für ' + esc(S.profile.name) + ' kommen auf dieses Handy – neutral formuliert und höchstens eine pro Tag für Sie und ' + esc(S.profile.name) + ' zusammen.</div></div>' : '') +
+        '<section class="card"><h3>So erreichen wir Sie</h3><p class="sub" style="margin:4px 0 0">' + (shared() ? 'Hinweise für Sie selbst kommen nur,' : 'Sie bekommen nur dann eine Nachricht,') + ' wenn eine Stelle wiederholt weh tut, „Kopf“ gemeldet wird oder es im Wiedereinstieg wieder weh tut – höchstens eine pro Tag. Sicherheitshinweise stehen immer auch hier in der App.</p></section>' +
         lockPreview([E.NOTIF_PARENT_TXT], 'So sieht es auf Ihrem Sperrbildschirm aus – ohne Namen, ohne Gesundheitsangaben.') +
         '<p class="note">Im Prototyp wird nichts verschickt (simuliert). Auf dem iPhone kommen Mitteilungen nur, wenn Fokus11 als App zum Home-Bildschirm hinzugefügt ist.</p>';
     }
+    if (shared()) h += '<div class="banner info">' + IC.info + '<div>Du nutzt das Handy deiner Eltern: Mitteilungen kommen dort an – neutral formuliert, höchstens eine pro Tag für euch zusammen.</div></div>';
     h += '<div class="banner info">' + IC.info + '<div>Im Prototyp simuliert – es wird nichts verschickt. Auf dem iPhone kommen Mitteilungen später nur, wenn Fokus11 als App zum Home-Bildschirm hinzugefügt ist.</div></div>';
-    h += '<section class="card"><h3>Was darf sich melden?</h3>' + [['fragen', 'Kurze Fragen', 'z. B. Morgen-Check'], ['training', 'Training', 'dein Plan für heute'], ['tasche', 'Tasche', 'am Vorabend von Training und Spiel'], ['spieltag', 'Spieltag', 'am Vorabend']].map(function (x) {
+    h += '<section class="card"><h3>Was darf sich melden?</h3>' + [['fragen', 'Kurze Fragen', 'z. B. Morgen-Check'], ['training', 'Training', 'dein Plan für heute'], ['tasche', 'Tasche', 'am Vorabend von Spiel oder Turnier'], ['spieltag', 'Spieltag', 'am Vorabend']].map(function (x) {
       return '<div class="trow"><div style="flex:1"><div style="font-weight:600">' + x[1] + '</div><div class="sub" style="font-size:12.5px">' + x[2] + '</div></div><button class="switch" role="switch" aria-checked="' + !!n[x[0]] + '" aria-label="' + x[1] + '" data-a="notif-tog" data-v="' + x[0] + '"></button></div>'; }).join('') + '</section>';
     var quiet = u16() ? ['19:30', '20:00', '20:30'] : ['20:00', '20:30', '21:00', '21:30'];
     h += '<section class="card"><h3>Wann?</h3><p class="sub" style="margin:2px 0 6px;font-size:13px">Uhrzeit</p><div class="chips">' + ['16:00', '17:00', '18:00', '19:00'].map(function (x) { return '<button class="chip sm" aria-pressed="' + (n.time === x) + '" data-a="notif-set" data-k="time" data-v="' + x + '">' + x + '</button>'; }).join('') + '</div>' +
@@ -3884,7 +4055,7 @@ var Illus = (function () {
     ['pakete', 'Pakete', 'Basic, Plus, Premium – im Prototyp nicht buchbar'], ['daten', 'Daten & Konto', 'Speicherung, Löschen, weiteres Elternteil'], ['hilfe', 'Hilfe & FAQ', 'Fragen von Eltern']];
   function viewParent() {
     var p = S.profile, name = esc(p.name), isU16 = u16(), ov = E.parentOverview(S), pm = ui.pm || {}, sub = ui.psub;
-    var h = '<div class="parentbar">Elternkonto · simuliert eigenes Gerät</div>';
+    var h = '<div class="parentbar">' + (shared() ? 'Elternbereich · gemeinsames Handy' : 'Elternkonto · simuliert eigenes Gerät') + '</div>', backLbl = shared() ? planOf(p.name) : 'Zurück zur Spieler-Ansicht';
     if (isU16 && p.parentConsent === false) {
       var c = ui.pc || {};
       h += '<h1>Hallo! Hier ist das Elternkonto für ' + name + '.</h1><button class="btn ghost block mt8" data-a="to-player">Zurück zur Spieler-Ansicht</button>';
@@ -3896,8 +4067,10 @@ var Illus = (function () {
       return h + '<p class="legal">Prototyp – im Prototyp wird nichts verschickt.</p>';
     }
     if (!sub) {
-      h += '<h1>Elternkonto für ' + name + '</h1><p class="sub">' + esc(PARENT_LINE) + '</p><button class="btn ghost block mt8" data-a="to-player">Zurück zur Spieler-Ansicht</button>';
-      if (ov.turned16 != null) h += '<div class="banner info">' + IC.info + '<div>Seit dem 16. Geburtstag (' + fmtY(ov.turned16) + ') entscheidet ' + name + ' allein, was Sie hier sehen.</div></div>';
+      h += '<h1>' + (shared() ? 'Elternbereich' : 'Elternkonto') + ' für ' + name + '</h1><p class="sub">' + esc(PARENT_LINE) + '</p><button class="btn ghost block mt8" data-a="to-player">' + esc(backLbl) + '</button>';
+      if (shared()) h += '<p class="note">' + name + ' nutzt Fokus11 auf diesem Handy. Ändern unter „Mein Kind“.</p>';
+      if (shared() && !isU16) h += '<div class="banner info sharedb">' + IC.info + '<div><b>' + esc(E.parent16Note(S, p.name)) + '</b><button class="btn sec block mt8" data-a="set-device" data-v="own">Umzug aufs eigene Handy einrichten</button></div></div>';
+      else if (ov.turned16 != null) h += '<div class="banner info">' + IC.info + '<div>Seit dem 16. Geburtstag (' + fmtY(ov.turned16) + ') entscheidet ' + name + ' allein, was Sie hier sehen.</div></div>';
       h += '<section class="card">' + parentSummary(true) + '</section>';
       function prow(c) { return '<button class="ichrow" data-a="psub" data-v="' + c[0] + '"><span><b>' + c[1] + '</b><small>' + c[2] + '</small></span><span class="chev" aria-hidden="true">›</span></button>'; }
       h += '<nav class="ichlist" aria-label="Elternkonto – Bereiche">' + PICH.filter(function (c) { return (c[0] !== 'pause' || isU16) && c[0] !== 'pakete'; }).map(prow).join('') + '</nav>';
@@ -3909,10 +4082,11 @@ var Illus = (function () {
     h += '<button class="backrow" data-a="psub" data-v="">' + IC.back + '<span>Elternkonto</span></button><h1 class="subh">' + esc(title) + '</h1>';
     if (sub === 'kind') {
       h += '<section class="card">' + parentSummary(true) + '</section>';
+      h += deviceCard();
       if (isU16) h += '<section class="card"><h3>Geburtsdatum von ' + name + '</h3><p class="sub" style="margin:4px 0 0">Bestimmt die Altersklasse und ob die Grundübersicht bis 16 gilt. Nach Ihrer Bestätigung nur hier änderbar.</p>' + birthSelects(pm.birthM, pm.birthY, 'pm') +
         '<button class="btn sec block mt12" data-a="pm-save-birth">Geburtsdatum speichern</button></section>';
       h += '<section class="card"><h3>Rezepte</h3><p class="sub" style="margin:2px 0 0;font-size:12.5px">Ausführliche Rezepte mit Zutaten und Schritten – zum gemeinsamen Kochen.</p><div class="rgrid mt12">' + E.RECIPES.map(recipeCard).join('') + '</div></section>';
-      h += '<p class="note">Einstellungen zum Teilen trifft ' + name + ' selbst. Tasche, Physio-/Arzttermine und Gründe fürs Fehlen im Teamtraining sehen Sie nicht.</p>';
+      h += '<p class="note">Einstellungen zum Teilen trifft ' + name + ' selbst. Tasche, Physio-/Arzttermine und Gründe fürs Fehlen im Teamtraining sehen Sie ' + (shared() ? 'nicht in Ihrer Übersicht. ' + esc(E.SHARED_ALSO_PARENT_TXT) : 'nicht.') + '</p>';
     } else if (sub === 'pause') h += injuryCardParent();
     else if (sub === 'notif') {
       h += notifPage(true);
@@ -3921,14 +4095,29 @@ var Illus = (function () {
     } else if (sub === 'pakete') h += packagesHtml();
     else if (sub === 'daten') {
       h += '<section class="card"><h3>Speicherung</h3><p class="sub" style="margin:4px 0 0">Im Prototyp bleibt alles auf diesem Gerät. Schmerzmeldungen und Nachrichten werden nach ' + E.PAIN_KEEP + ' Tagen gelöscht, ärztliche Pausen 90 Tage nach dem Ende.</p></section>';
-      h += ov.ownAccess || !isU16 ? '' : '<section class="card"><h3>Eigener Zugang für ' + name + '</h3><button class="btn sec block mt8" data-a="own-access">Eigenen Zugang einrichten</button><p class="note">Sie entscheiden, wann ' + name + ' einen eigenen Zugang bekommt. Alle Daten wandern mit.</p></section>';
+      h += ov.ownAccess || !isU16 || shared() ? '' : '<section class="card"><h3>Eigener Zugang für ' + name + '</h3><button class="btn sec block mt8" data-a="own-access">Eigenen Zugang einrichten</button><p class="note">Sie entscheiden, wann ' + name + ' einen eigenen Zugang bekommt. Alle Daten wandern mit.</p></section>';
       h += '<section class="card"><h3>Weiteres Elternteil einladen</h3><p class="sub" style="margin:4px 0 0">Mehrere Elternkonten sind möglich (z. B. bei getrennten Eltern).</p><div class="qrbox">' + I.qr('eltern2-' + p.name, 116) + '<p class="note">Link und QR-Code sind im Prototyp simuliert.</p></div></section>';
       h += '<section class="card"><h3>Alle Daten löschen</h3><p class="sub" style="margin:4px 0 0">Jederzeit möglich. Im Prototyp nicht verbunden.</p><span class="tag ph">Platzhalter</span></section>';
     } else if (sub === 'hilfe') {
       h += '<section class="card helpcard"><h3>Akut Hilfe?</h3><p class="sub" style="margin:4px 0 0">Notruf, Elterntelefon und TelefonSeelsorge – ohne Login. Dort auch die Angebote für Ihr Kind.</p><button class="btn sec block mt12" data-a="open-help">Hilfe öffnen</button></section>';
       h += '<section class="card"><h2 style="font-size:19px">Fragen von Eltern</h2>' + faqHtml(true) + '</section>';
     }
-    return h + '<button class="btn ghost block mt16" data-a="to-player">Zurück zur Spieler-Ansicht</button>';
+    return h + '<button class="btn ghost block mt16" data-a="to-player">' + esc(backLbl) + '</button>';
+  }
+  // R5b: „Wie nutzt [Name] Fokus11?“ – jederzeit änderbar; Umzug aufs eigene Handy behält alle Daten
+  function deviceChoice(sel, name, act, allowShared) {
+    return '<div class="devpick" role="radiogroup" aria-label="Wie nutzt ' + esc(name || 'Ihr Kind') + ' Fokus11?">' +
+      [['shared', 'Auf meinem Handy', 'Gemeinsames Gerät – wenn ' + (name ? esc(name) : 'Ihr Kind') + ' noch kein eigenes Smartphone hat.'], ['own', 'Auf einem eigenen Handy', 'Einladung per Link oder QR-Code.']].map(function (o) {
+        var dis = o[0] === 'shared' && !allowShared;
+        return '<button class="devopt" role="radio" aria-checked="' + (sel === o[0]) + '" data-a="' + act + '" data-v="' + o[0] + '"' + (dis ? ' disabled' : '') + '><span class="rb" aria-hidden="true"></span><span><b>' + o[1] + '</b><small>' + o[2] + '</small></span></button>';
+      }).join('') + '</div>';
+  }
+  function deviceCard() {
+    var p = S.profile, name = esc(p.name), dev = E.deviceOf(S), ok = E.canShareDevice(S);
+    var h = '<section class="card" aria-labelledby="devT"><h3 id="devT">Wie nutzt ' + name + ' Fokus11?</h3>' + deviceChoice(dev, p.name, 'set-device', ok || dev === 'shared');
+    if (dev === 'shared') h += '<p class="note">' + name + ' sieht den Hinweis: „' + esc(E.SHARED_DEVICE_TXT) + '“ Mitteilungen kommen auf Ihr Handy, höchstens eine pro Tag.</p>' + (ok ? '' : '<p class="note"><b>' + name + ' ist 16: Bitte richten Sie den Umzug aufs eigene Handy ein</b> – dann gelten die Teilen-Regeln ab 16. Bis dahin können Sie hier alles sehen.</p>');
+    else h += (ok ? '' : '<p class="note">Ab 16 nutzt ' + name + ' ein eigenes Konto. Das gemeinsame Handy bieten wir dann nicht mehr an.</p>') + '<div class="qrbox">' + I.qr('kind-' + p.name, 104) + '<p class="note">Link und QR-Code für das eigene Handy (im Prototyp simuliert). Alle Daten wandern mit.</p></div>';
+    return h + '</section>';
   }
   var PARENT_LINE = 'Ein Plan, der zur Fußballwoche Ihres Kindes passt – und weniger, woran Sie denken müssen.';
   // 4.7 Pakete: nur im Elternkonto, nie beim Kind; ohne Kauf
@@ -3938,7 +4127,7 @@ var Illus = (function () {
       ['Plus', 'ca. 99–119 € / Jahr', ['Alles aus Basic', 'Mental-Programm (geplant)', 'Ernährung mit einfachem Eintragen, Rezepten und Vorschlägen für Eltern']],
       ['Premium', 'ca. 29–39 € / Monat', ['Alles aus Plus', 'Monatlicher Call (20–30 Min) für Ihre Familie', 'Erst nach dem Pilot, begrenzte Plätze']]
     ];
-    var h = '<div class="banner info">' + IC.info + '<div><b>Im Prototyp nicht buchbar.</b> Preis-Ideen, keine Angebote. Abos schließen nur Eltern ab – Ihr Kind sieht diese Seite nie.</div></div>';
+    var h = '<div class="banner info">' + IC.info + '<div><b>Im Prototyp nicht buchbar.</b> Preis-Ideen, keine Angebote. Abos schließen nur Eltern ab' + (shared() ? ' – auf dem gemeinsamen Handy ist dieser Bereich gesperrt.' : ' – Ihr Kind sieht diese Seite nie.') + '</div></div>';
     h += P.map(function (x) { return '<section class="card pkg"><div class="row between"><h3>' + x[0] + '</h3><span class="tag">' + x[1] + '</span></div><ul class="plain mt8">' + x[2].map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul></section>'; }).join('');
     h += '<section class="card flat"><h3>Regeln für den Premium-Call</h3><ul class="plain mt8"><li>Unter 16 ist ein Elternteil dabei.</li><li>Keine Aufzeichnung.</li><li>Coaching ist keine Therapie – bei Bedarf verweisen wir an Fachleute.</li><li>Kein Verkauf im Gespräch.</li><li>Erkenntnisse für das Produkt nur mit Ihrer getrennten Einwilligung, anonym.</li></ul></section>';
     h += '<p class="note">Immer dabei, auch ohne Abo: Schmerz melden, ärztliche Pause, Hilfe-Knopf und Elternhinweis.</p>';
@@ -4184,8 +4373,8 @@ var Illus = (function () {
     else {
       var pn = E.painNotice(S, r), extra = pn.notify ? '<p class="sub" style="margin:6px 0 0"><b>Zusätzlich bekommen deine Eltern eine kurze Nachricht</b> – ' +
         (pn.reasons.indexOf('kopf') >= 0 ? 'weil du „Kopf“ meldest.' : pn.reasons.indexOf('repeat') >= 0 ? 'weil es wiederholt weh tut.' : 'weil es im Wiedereinstieg wieder weh tut.') + ' (Im Prototyp nur Vorschau.)</p>' : '';
-      if (isU16) b += '<section class="card flat preview"><h3>Das sehen deine Eltern</h3><p class="sub" style="margin:4px 0 0">Datum: ' + fmtY(S.today) + (r ? ' · Bereich: ' + esc(E.REGION_LABEL[r]) : ' · Bereich: keine Angabe') + '</p>' + extra + '<p class="note" style="margin-top:4px">Sonst nichts. Dein Trainer sieht Schmerzen nie. Gelöscht wird die Meldung nach ' + E.PAIN_KEEP + ' Tagen.</p></section>';
-      else b += (extra ? '<section class="card flat preview">' + extra + '</section>' : '') + '<p class="note">Deine Eltern sehen das nur, wenn du „Gemeldete Schmerzen“ teilst bzw. Nachrichten erlaubst. Dein Trainer sieht Schmerzen nie. Gelöscht wird die Meldung nach ' + E.PAIN_KEEP + ' Tagen.</p>';
+      if (isU16) b += '<section class="card flat preview"><h3>Das sehen deine Eltern</h3><p class="sub" style="margin:4px 0 0">Datum: ' + fmtY(S.today) + (r ? ' · Bereich: ' + esc(E.REGION_LABEL[r]) : ' · Bereich: keine Angabe') + '</p>' + extra + '<p class="note" style="margin-top:4px">' + (shared() ? 'Sonst nichts in ihrer Übersicht. ' + esc(E.SHARED_DEVICE_TXT) + ' ' : 'Sonst nichts. ') + 'Dein Trainer sieht Schmerzen nie. Gelöscht wird die Meldung nach ' + E.PAIN_KEEP + ' Tagen.</p></section>';
+      else b += (extra ? '<section class="card flat preview">' + extra + '</section>' : '') + '<p class="note">Deine Eltern sehen das ' + (shared() ? 'in ihrer Übersicht ' : '') + 'nur, wenn du „Gemeldete Schmerzen“ teilst bzw. Nachrichten erlaubst.' + (shared() ? ' ' + esc(E.SHARED_ALSO_TXT) : '') + ' Dein Trainer sieht Schmerzen nie. Gelöscht wird die Meldung nach ' + E.PAIN_KEEP + ' Tagen.</p>';
     }
     return shell('Schmerz melden', b, '<button class="btn block" data-a="pain-submit">Melden</button>', true);
   }
@@ -4427,7 +4616,7 @@ var Illus = (function () {
     var b = '<p class="sub" style="margin:0">' + esc((ui.bagDay === S.today ? 'Heute' : ui.bagDay === S.today + 1 ? 'Morgen' : fmtD(ui.bagDay)) + ': ' + ({ spiel: 'Spiel', turnier: 'Turnier', training: 'Training' }[bg.kind]) + (bg.hall ? ' in der Halle' : '')) + ' – ' + bg.done + ' von ' + bg.total + ' eingepackt.</p>';
     b += bg.items.map(function (x) { return '<button class="check mt8" role="checkbox" aria-checked="' + x.on + '" data-a="bag-tog" data-v="' + x.id + '"><span class="box">' + (x.on ? IC.check : '') + '</span><span>' + esc(x.label) + '</span></button>'; }).join('');
     if (bg.tip) b += '<div class="banner info">' + IC.info + '<div>' + esc(bg.tip) + '</div></div>';
-    b += '<p class="note">Freiwillig – abhaken, wenn du magst. Deine Eltern sehen das nicht. Die Haken verschwinden nach ' + E.BAG_KEEP + ' Tagen.</p>';
+    b += '<p class="note">Freiwillig – abhaken, wenn du magst. ' + (shared() ? esc(E.SHARED_BAG_TXT) : 'Deine Eltern sehen das nicht.') + ' Die Haken verschwinden nach ' + E.BAG_KEEP + ' Tagen.</p>';
     return shell('Tasche gepackt?', b, '<button class="btn block" data-a="close-ov">Fertig</button>', true);
   }
   // ---------- „In meinen Kalender eintragen“ (4.4): .ics pro Termin, neutraler Titel, keine Gesundheitsdaten ----------
@@ -4647,7 +4836,7 @@ var Illus = (function () {
   // =====================================================================
   function defaultDraft() {
     return { role: null, childTurn: false, invited: false, name: '', birthM: '', birthY: '', age: 'U15', ageManual: false, foot: 'rechts', position: 'ZM', position2: '', focus: [], teamDays: [1, 3], matchWd: 5,
-      extraMin: { 0: 30, 1: 0, 2: 30, 3: 0, 4: 30, 5: 0, 6: 0 }, places: ['zimmer', 'garten'], parentEmail: '', consentAsked: false, parentNow: false, parentConsentNow: false, pAgree: false, pHealth: false };
+      extraMin: { 0: 30, 1: 0, 2: 30, 3: 0, 4: 30, 5: 0, 6: 0 }, places: ['zimmer', 'garten'], parentEmail: '', consentAsked: false, parentNow: false, parentConsentNow: false, pAgree: false, pHealth: false, device: null };
   }
   function obSteps(d) { return d.role === 'parent' && !d.childTurn ? ['welcome', 'p-family', 'p-invite'] : ['welcome', 'basics', 'position', 'focus', 'week', 'account', 'privacy']; }
   function draftAge(d) { if (!d.birthY || !d.birthM) return null; return E.ageYears({ birth: { m: +d.birthM, y: +d.birthY } }, new Date()); }
@@ -4675,22 +4864,33 @@ var Illus = (function () {
     if (!ui.ob) ui.ob = { step: 0, draft: defaultDraft(), err: '' };
     var o = ui.ob, d = o.draft, steps = obSteps(d), st = steps[o.step], b = '', canNext = true, nextLbl = 'Weiter', showNext = true;
     if (st === 'welcome') {
-      b = '<div class="hero">' + IC.ball + '<div class="k" style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.9">Prototyp</div><h1>Fokus<span style="color:#bbf7d0">11</span></h1>' +
+      // R5b: ruhiger Start – Kopfkarte, Elevator-Pitch, eine große geteilte Karte (Spieler:in | Elternteil), Beispieldaten leise darunter
+      b = '<div class="hero start">' + IC.ball + '<div class="k" style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.9">Prototyp</div><h1>Fokus<span style="color:#bbf7d0">11</span></h1>' +
         '<p>Zusatztraining, das zu Teamtraining, Spielen und Schule passt.</p></div>' +
         '<p class="elevator">Fokus11 plant dein Extra-Training passend zu Teamtraining, Spielen und Schule. Nach kurzen Rückmeldungen passt sich der Plan an dich an – und bis 16 sehen deine Eltern, was geplant ist.</p>' +
-        '<div class="roles"><button class="btn block" data-a="ob-role" data-v="player">Ich bin Spieler:in</button><button class="btn sec block mt8" data-a="ob-role" data-v="parent">Ich bin Elternteil</button></div>' +
-        '<p class="note" style="text-align:center">Unter 16 legt am besten ein Elternteil die Familie an und lädt dich ein.</p>' +
-        '<button class="btn ghost block mt12" data-a="ob-demo">Mit Beispieldaten starten</button><p class="note" style="text-align:center">Beispiel: Leon, U15, Zentrales Mittelfeld</p>' +
+        '<div class="rolewrap"><h2 class="roleq" id="roleQ">Wer bist du?</h2><div class="rolecard" role="group" aria-labelledby="roleQ">' +
+          '<button class="rolehalf" data-a="ob-role" data-v="player"><span class="silbox">' + I.silPlayer() + '</span><span class="rs">Mein Plan</span><span class="rl rbtn">Spieler:in</span></button>' +
+                    '<button class="rolehalf" data-a="ob-role" data-v="parent"><span class="silbox">' + I.silParent() + '</span><span class="rs">Familie anlegen – auch ohne eigenes Handy des Kindes</span><span class="rl rbtn">Elternteil</span></button>' +
+        '</div></div>' +
+        '<p class="note startnote">Unter 16 legt am besten ein Elternteil die Familie an und lädt dich ein.</p>' +
+        '<div class="startdemo"><button class="btn ghost block" data-a="ob-demo">Mit Beispieldaten starten</button><p class="note">Beispiel: Leon, U15, Zentrales Mittelfeld</p></div>' +
         '<button class="linkbtn" style="display:block;margin:4px auto 0" data-a="open-help">Hilfe – ohne Login</button>';
       showNext = false;
     } else if (st === 'p-family') {
       var tooOld = d.birthY && d.birthM && !draftU16(d);
-      b = '<div class="parentbar">Elternkonto · simuliert eigenes Gerät</div><h1>Familie anlegen</h1><p class="parentline">' + esc(PARENT_LINE) + '</p><p class="sub">Unterstützen statt antreiben: Sie sehen die Trainings- und Ruhetage Ihres Kindes und wissen, nach welchen Regeln geplant wird. Sie legen die Familie an und laden Ihr Kind ein – so geben Sie die Einwilligung, bevor Daten erhoben werden. Abos schließen nur Eltern ab; im Prototyp ist nichts buchbar.</p>' +
+      b = '<div class="parentbar">' + (d.device === 'shared' ? 'Elternbereich · gemeinsames Handy' : 'Elternkonto · simuliert eigenes Gerät') + '</div><h1>Familie anlegen</h1><p class="parentline">' + esc(PARENT_LINE) + '</p><p class="sub">Unterstützen statt antreiben: Sie sehen die Trainings- und Ruhetage Ihres Kindes und wissen, nach welchen Regeln geplant wird. Sie legen die Familie an und laden Ihr Kind ein – so geben Sie die Einwilligung, bevor Daten erhoben werden. Abos schließen nur Eltern ab; im Prototyp ist nichts buchbar.</p>' +
         '<label class="f" for="obn">Vorname Ihres Kindes</label><input id="obn" type="text" maxlength="20" autocomplete="off" value="' + esc(d.name) + '" data-bind="ob.name" placeholder="z. B. Mia">' +
         birthSelects(d.birthM, d.birthY, 'ob') + '<details class="why"><summary>Warum fragen wir das?</summary><p class="sub">' + WHY_BIRTH + '</p></details>' +
         (d.birthY ? '<p class="sub" style="margin:10px 0 0">Altersklasse: <b>' + esc(d.age) + ' (' + esc(E.JUGEND[d.age]) + ')</b></p>' : '') +
-        (tooOld ? '<section class="banner info">' + IC.info + '<div>Ab 16 richtet Ihr Kind Fokus11 selbst ein und kann Sie bei Bedarf einladen.</div></section>' : parentConsentBox(d, d.name));
-      canNext = d.name.trim() && d.birthM && d.birthY && !tooOld && d.pAgree && d.pHealth; nextLbl = 'Einladung erstellen';
+        (tooOld ? '<section class="banner info">' + IC.info + '<div>Ab 16 richtet Ihr Kind Fokus11 selbst ein und kann Sie bei Bedarf einladen.</div></section>' :
+          '<h3 class="mt16" style="font-size:16px">Wie nutzt ' + esc(d.name.trim() || 'Ihr Kind') + ' Fokus11?</h3>' + deviceChoice(d.device, d.name.trim(), 'ob-device', true) +
+          '<p class="note">Jederzeit änderbar. Später aufs eigene Handy umziehen geht per Link – alle Daten wandern mit.</p>' + parentConsentBox(d, d.name));
+      canNext = d.name.trim() && d.birthM && d.birthY && !tooOld && d.pAgree && d.pHealth && !!d.device; nextLbl = d.device === 'shared' ? 'Weiter' : 'Einladung erstellen';
+    } else if (st === 'p-invite' && d.device === 'shared') {
+      b = '<div class="parentbar">Elternbereich · gemeinsames Handy</div><h1>Jetzt ist ' + esc(d.name) + ' dran</h1><p class="sub">Ihre Zustimmung ist gespeichert. Geben Sie das Handy kurz an ' + esc(d.name) + ': Position, Schwerpunkt und Vereinswoche trägt ' + esc(d.name) + ' am besten selbst ein.</p>' +
+        '<section class="card flat"><h3>So funktioniert das gemeinsame Handy</h3><ul class="plain mt8"><li>Oben wechseln Sie zwischen ' + esc(gen(d.name)) + ' Plan und dem Elternbereich.</li><li>' + esc(d.name) + ' erfährt ehrlich, dass Sie hier alles sehen können.</li><li>Mitteilungen kommen auf dieses Handy – neutral, höchstens eine pro Tag.</li><li>Bekommt ' + esc(d.name) + ' ein eigenes Handy, ziehen Sie per Link um. Alles kommt mit.</li></ul></section>' +
+        '<button class="btn block mt12" data-a="ob-child">Weiter mit ' + esc(gen(d.name)) + ' Plan</button>';
+      showNext = false;
     } else if (st === 'p-invite') {
       b = '<div class="parentbar">Elternkonto · simuliert eigenes Gerät</div><h1>Einladung für ' + esc(d.name) + '</h1><p class="sub">' + esc(d.name) + ' öffnet den Link oder scannt den QR-Code auf dem eigenen Handy. Ihre Zustimmung ist schon gespeichert.</p>' +
         '<div class="qrbox">' + I.qr('kind-' + d.name, 150) + '<p class="sub" style="margin:8px 0 0;font-weight:600">fokus11.app/einladung/' + esc(d.name.toLowerCase()) + '</p><p class="note">Link und QR-Code sind im Prototyp simuliert.</p></div>' +
@@ -4716,6 +4916,8 @@ var Illus = (function () {
         E.PLACES.map(function (o) { return '<button class="chip sm" aria-pressed="' + (d.places.indexOf(o.id) >= 0) + '" data-a="ob-place" data-v="' + o.id + '">' + o.label + '</button>'; }).join('') + '</div>';
     } else if (st === 'account') {
       if (!draftU16(d)) b = '<h1>Deine Einwilligung</h1><section class="banner info">' + IC.info + '<div>Du bist 16 oder älter – du stimmst selbst zu. Deine Eltern haben nur ein Konto, wenn du sie einlädst, und sehen nur, was du freigibst (standardmäßig nichts).</div></section>';
+      else if ((d.invited || d.parentConsentNow) && d.device === 'shared') b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b></div></section>' +
+        '<section class="banner info sharedb">' + IC.info + '<div><b>' + esc(E.SHARED_DEVICE_TXT) + '</b><p class="sub" style="margin:4px 0 0">Das steht auch unter Ich → Eltern & Teilen. Wenn du ein eigenes Handy bekommst, ziehst du mit allen Daten um.</p></div></section>';
       else if (d.invited || d.parentConsentNow) b = '<h1>Deine Eltern</h1><section class="banner chg" style="background:var(--accent-ll);border-color:#86efac">' + IC.done.replace('viewBox', 'class="ic" viewBox') + '<div><b>Deine Eltern haben zugestimmt.</b><p class="sub" style="margin:4px 0 0">Bis 16 sehen sie in ihrem Elternkonto immer eine Grundübersicht (Trainings-/Ruhetage, Anzahl Einheiten, gemeldete Schmerzen). Ob sie auch Schlaf und Antworten sehen, entscheidest du unter Ich → Eltern & Teilen.</p></div></section>';
       else if (d.parentNow) {
         b = '<div class="parentbar">Elternkonto · simuliert eigenes Gerät</div><h1>Zustimmung für ' + esc(d.name) + '</h1><p class="sub">' + esc(d.name) + ' möchte Fokus11 nutzen. Erst nach Ihrer Zustimmung speichern wir Gesundheitsangaben.</p>' + parentConsentBox(d, d.name) +
@@ -4757,7 +4959,9 @@ var Illus = (function () {
       focus: d.focus.filter(function (f) { return allowed.indexOf(f) >= 0; }), teamDays: d.teamDays.slice(), extraMin: Object.assign({}, d.extraMin), heights: [],
       places: d.places.slice(), place: { ort: ['garten', 'wand', 'halle', 'zimmer'].filter(function (o) { return d.places.indexOf(o) >= 0; })[0] || d.places[0] || 'zimmer', people: 1 },
       parentEmail: isU16 ? d.parentEmail.trim() : '', parentConsent: consent, share: E.defaultShare(isU16),
-      account: { mode: !isU16 ? 'self' : consent === true ? 'family' : 'preview', requested: d.consentAsked ? today : null, parentInvited: isU16 } });
+      account: { mode: !isU16 ? 'self' : consent === true ? 'family' : 'preview', requested: d.consentAsked ? today : null, parentInvited: isU16 },
+      device: isU16 && d.device === 'shared' ? 'shared' : 'own' });
+    if (p.device === 'shared') { p.deviceSince = today; p.sharedSeen = false; }
     if (!p.focus.length) p.focus = ['passen'];
     var ad = autoDays(d, true); Object.keys(ad).forEach(function (w) { if (p.teamDays.indexOf(+w) < 0) p.extraMin[w] = 0; }); // B-05: Auto-Tage ohne eigene Minuten
     S = E.newState(p, today, base);
@@ -4809,6 +5013,18 @@ var Illus = (function () {
   function startRun(drills, basics) { ui.run = { drills: drills.slice(), i: 0, left: drills[0].min * 60, running: false, status: {}, basics: !!basics }; ui.overlay = 'session'; renderOverlay(); }
   function apply(r, title) { if (r.state === S && r.changes.length) { toast(r.changes[0].text); return false; } showResult(r, title); return true; }
   function filterFocus(P) { var al = E.fociFor(P.age, P.position).map(function (f) { return f.id; }); P.focus = P.focus.filter(function (f) { return al.indexOf(f) >= 0; }); if (!P.focus.length) P.focus = [al.indexOf('passen') >= 0 ? 'passen' : al[0]]; }
+  // R5b: Gerätewechsel (Gerätekarte und – auf dem gemeinsamen Gerät – alter Knopf „Eigenen Zugang einrichten“)
+  function askDevice(v) {
+    if (v === E.deviceOf(S)) return;
+    var nmD = S.profile.name;
+    confirmDlg(v === 'shared' ? 'Auf Ihrem Handy nutzen?' : 'Auf das eigene Handy umziehen?',
+      v === 'shared' ? nmD + ' nutzt Fokus11 dann auf diesem Handy und sieht einmalig den Hinweis, dass Sie hier alles sehen können. Alle Daten bleiben.' : nmD + ' öffnet den Link oder scannt den QR-Code auf dem eigenen Handy (im Prototyp simuliert). Alle Daten wandern mit.',
+      v === 'shared' ? 'Auf meinem Handy' : 'Umziehen', function () {
+        var rD = E.setDevice(S, v, S.today); if (rD.refused) { toast(rD.why); return; }
+        S = rD.state; save(); render(); toast(rD.changes[0].text);
+      }, false);
+  }
+  function goParentView() { ui.view = 'parent'; ui.psub = null; ui.overlay = null; var bb = S.profile.birth || {}; ui.pm = { birthM: bb.m || '', birthY: bb.y || '' }; ui.pc = {}; render(); var mm = document.getElementById('main'); if (mm) mm.scrollTop = 0; }
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-a]');
     // R5-QA N6: Tipp auf die Zeilenbeschriftung schaltet den Schalter der Zeile
@@ -4868,20 +5084,33 @@ var Illus = (function () {
       case 'open-help': if ($dlg.innerHTML) closeDlg(); if (ui.overlay && ui.overlay !== 'help') ui.helpReturn = ui.overlay; ui.overlay = 'help'; renderOverlay(); break;
       case 'dismiss-chg': if (S.lastChanges) S.lastChanges.dismissed = true; save(); render(); break;
       case 'dismiss-16': S.profile.turned16Seen = true; save(); render(); break;
+      case 'later-16': S = E.shared16Later(S, S.today).state; save(); render(); toast('Wir erinnern dich in ' + E.SHARED16_REMIND + ' Tagen wieder.'); break;
+      case 'dismiss-shared': S.profile.sharedSeen = true; save(); render(); break;
+      case 'set-device': askDevice(v); break;
       case 'dismiss-loop': S.loopSeen = true; save(); render(); break;
       case 'dismiss-calib': S.calibHide = true; save(); render(); break;
       case 'energy-seen': S.energyTipSeen = true; save(); render(); break;
       // Konto / Eltern (Entscheidung 5)
       case 'ask-consent': S.profile.account.requested = t; save(); render(); toast('Anfrage an deine Eltern verschickt (simuliert).'); break;
-      case 'invite-parents': S.profile.account.parentInvited = true; save(); render(); toast('Einladung an deine Eltern erstellt (simuliert).'); break;
-      case 'to-parent': ui.view = 'parent'; ui.psub = null; ui.overlay = null; var bb = S.profile.birth || {}; ui.pm = { birthM: bb.m || '', birthY: bb.y || '' }; ui.pc = {}; render(); var mm = document.getElementById('main'); if (mm) mm.scrollTop = 0; break;
+      case 'invite-parents': S.profile.account.parentInvited = true; S.profile.account.invitedByTeen = true; save(); render(); toast('Einladung an deine Eltern erstellt (simuliert).'); break;
+      case 'to-parent':
+        // H1 (13.11., Gründer-Go): auf dem gemeinsamen Handy ist der Elternbereich gesperrt – Entsperren über die Bildschirmsperre des Handys (simuliert)
+        if (shared()) { confirmDlg('Elternbereich entsperren', 'Der Elternbereich ist nur für Erwachsene. Im echten Produkt fragt dein Handy hier nach Face ID, Fingerabdruck oder Gerätecode der Eltern. (Im Prototyp simuliert.)', 'Entsperren (simuliert)', function () { goParentView(); }, false); break; }
+        goParentView(); break;
       case 'to-player': ui.view = 'player'; ui.overlay = null; render(); break;
       case 'pc': ui.pc[v] = !ui.pc[v]; render(); var pcb = document.querySelector('[data-a=pc][data-v=' + v + ']'); if (pcb) pcb.focus({ preventScroll: true }); break;
       case 'pv-consent': if (!(ui.pc.agree && ui.pc.health)) return; S.profile.parentConsent = true; S.profile.account.mode = 'family'; save(); render(); toast('Danke! Ihre Zustimmung ist gespeichert.'); break;
       case 'pm-save-birth':
         if (!ui.pm || !ui.pm.birthM || !ui.pm.birthY) { toast('Bitte Monat und Jahr wählen.'); return; }
-        S.profile.birth = { m: +ui.pm.birthM, y: +ui.pm.birthY }; S.profile.age = E.ageClassFor(+ui.pm.birthY, dateOf(S.today)); filterFocus(S.profile); save(); render(); toast('Geburtsdatum gespeichert.'); break;
+        var saveB = function () { S.profile.birth = { m: +ui.pm.birthM, y: +ui.pm.birthY }; S.profile.age = E.ageClassFor(+ui.pm.birthY, dateOf(S.today)); filterFocus(S.profile); save(); render(); toast('Geburtsdatum gespeichert.'); };
+        // R5b-QA H2: 16+ auf dem gemeinsamen Gerät – vorher ehrlich hinweisen (kein Zwang)
+        var ageB = E.ageYears({ birth: { m: +ui.pm.birthM, y: +ui.pm.birthY } }, dateOf(S.today));
+        if (shared() && ageB != null && ageB >= 16) confirmDlg(S.profile.name + ' ist dann 16', 'Ab 16 entscheidet ' + S.profile.name + ' selbst, was Sie sehen – auf diesem gemeinsamen Handy geht das aber nicht. Bitte richten Sie danach den Umzug aufs eigene Handy ein (unter „Mein Kind“). Alle Daten wandern mit.', 'Speichern', saveB, false);
+        else saveB();
+        break;
       case 'own-access':
+        // R5b-QA M1: auf dem gemeinsamen Gerät nur ein Umzugsweg – wie die Gerätekarte (E.setDevice)
+        if (shared()) { askDevice('own'); break; }
         confirmDlg('Eigenen Zugang einrichten?', 'Alle bisherigen Daten wandern mit. Im Prototyp wird nichts verschickt.', 'Einrichten', function () {
           S.profile.ownAccess = { since: S.today }; save(); render(); toast(S.profile.name + ' hat jetzt einen eigenen Zugang.');
         }, false); break;
@@ -5071,7 +5300,8 @@ var Illus = (function () {
       // onboarding
       case 'ob-demo': S = demoState(); save(); ui.ob = null; ui.tab = 'heute'; render(); toast('Beispiel: Leon, U15 – schau dich um!'); break;
       case 'ob-role': ui.ob.draft.role = v; ui.ob.step = 1; renderOnboarding(); focusOb(); break;
-      case 'ob-child': var dc = ui.ob.draft; dc.childTurn = true; dc.invited = true; ui.ob.step = 1; renderOnboarding(); focusOb(); toast('Jetzt auf dem Handy von ' + dc.name + ' (simuliert).'); break;
+      case 'ob-child': var dc = ui.ob.draft; dc.childTurn = true; dc.invited = true; ui.ob.step = 1; renderOnboarding(); focusOb(); toast(dc.device === 'shared' ? 'Jetzt ist ' + dc.name + ' dran.' : 'Jetzt auf dem Handy von ' + dc.name + ' (simuliert).'); break;
+      case 'ob-device': ui.ob.draft.device = v; renderOnboarding(); break;
       case 'ob-pc': ui.ob.draft[v] = !ui.ob.draft[v]; renderOnboarding(); var pcx = document.querySelector('[data-a=ob-pc][data-v=' + v + ']'); if (pcx) pcx.focus({ preventScroll: true }); break;
       case 'ob-ask':
         var dk = ui.ob.draft;
