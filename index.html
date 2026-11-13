@@ -626,6 +626,38 @@ details.hints[open]>summary::after,details.faq[open]>summary::after{transform:ro
 .zirkel ol{margin:6px 0 0;padding-left:20px}.zirkel li{margin:2px 0}.zirkel .reps{color:var(--ink2)}
 .zirkel li.ptn{color:#1d4ed8}
 @media (max-width:360px){.invgrid{gap:6px}.invtile{padding:8px}.invtile small{font-size:11.5px}}
+
+/* ===== Paket 2 (13.11.2026) ===== */
+/* A1: Tab-Leiste mit 3 Tabs; Hilfe schließt oben rechts */
+.tabbar{grid-template-columns:repeat(3,1fr)}
+.ov header.hdr-r h2{order:0}
+.ov header.hdr-r .iconbtn{margin-left:auto}
+.topbar .iconbtn{width:44px;height:44px}
+/* A2: weiche Übergänge (180–220 ms), Schritte innerhalb einer Maske blenden nur ein */
+.ov.step .body{animation:stepin .18s ease-out}
+@keyframes stepin{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+/* A3/A4/A5: starre Heute-Karte */
+.dcdrills{margin:4px 0 0;font-size:13.5px;opacity:.95;line-height:1.35;min-height:2.7em}
+.dcwarum{margin:6px 0 0;font-size:14px;line-height:1.4}
+.preov{margin:10px 0 0;padding-left:20px}.preov li{margin:6px 0}
+.strip.mini .sd.sel{outline:2px solid var(--accent-d);outline-offset:-2px}
+/* A14: kein hängender Fokusrahmen bei Zustimmungs-Haken nach Antippen */
+body.ptr .check:focus,body.ptr .check:focus-visible{outline:none;box-shadow:none}
+/* A17: dezente Schnellzugriffe */
+.quick.q2{display:flex;flex-direction:column;gap:6px}
+.quick .minilinks{display:flex;justify-content:center;gap:18px}
+.quick .minilinks .linkbtn{font-size:13.5px;min-height:44px}
+/* A11: Phasenleiste bleibt oben stehen, die Liste darunter springt */
+.tl{position:sticky;top:-4px;z-index:5;background:var(--bg);margin-top:8px;padding-top:10px}
+.tlbar button.sel{outline:3px solid var(--ink);outline-offset:-3px}
+/* A9 / A10 */
+.wknav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.wkhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.wkmonth{font-weight:700;font-size:14.5px}
+.iconbtn.sm{width:44px;height:44px}
+.mc.sel{outline:3px solid var(--ink);outline-offset:-3px}
+.mday{margin-top:10px}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -1179,7 +1211,8 @@ var Engine = (function () {
     var type;
     if (breakDay(st, abs, ph)) {
       var on = breakTrainDays(p), idx = on.indexOf(w), daysIn = abs - ph.startAbs;
-      if (ph.id === 'winterpause' && daysIn < 7) type = 'REST';                       // winter: 1st week free
+      // A20: Phasen-Plan statt „alles frei“: Winter erste Woche frei, ab Tag 4 ein lockerer Erholungstag (aktive Erholung); Woche 2 locker; ab Woche 3 Blöcke
+      if (ph.id === 'winterpause' && daysIn < 7) type = idx >= 0 && daysIn >= 3 && !(function () { for (var k = 3; k < daysIn; k++) if (on.indexOf(wd(ph.startAbs + k)) >= 0) return true; return false; })() ? 'RECOVER' : 'REST';
       else if (daysIn < 14) type = idx >= 0 && idx < (ph.id === 'winterpause' ? 2 : 3) ? 'RECOVER' : 'REST'; // then easy
       else type = idx >= 0 ? 'BLOCK' : 'REST';
       base.team = false; base.type = type; base.label = TYPE_LABEL[type];
@@ -2675,6 +2708,8 @@ var Engine = (function () {
   function placesOf(p) { var a = p.places && p.places.length ? p.places.slice() : [((p.place && p.place.ort) || 'garten'), 'zimmer']; return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
   function indoorFor(p) { return placesOf(p).indexOf('halle') >= 0 ? 'halle' : 'zimmer'; }
   // Ort für einen Tag: eigene Wahl oder automatisch; danach harte Regeln (Wetter, U12–U15 nie allein im Dunkeln draußen)
+  // A19: Kälte (Beispielwetter < 10 °C oder Okt–Mär) → Erholung/Mobility drinnen vorschlagen, kein Rasen
+  function coldDay(st, abs) { var m = dateOf(st, abs).getMonth(), w = exampleWeather(st, abs); return (w && w.temp < 10) || m >= 9 || m <= 2; }
   function placeInfo(st, abs) {
     var p = st.profile, base = p.place || {}, man = st.place && st.place[abs], people = peopleOf(man || base);
     var mins = +(p.extraMin && p.extraMin[wd(abs)]) || 30, li = lightInfo(st, abs, mins), wx = exampleWeather(st, abs), young15 = isU16(p.age);
@@ -2688,13 +2723,15 @@ var Engine = (function () {
     }
     // Gründer 13.11.: Gewitter/Glätte → immer drinnen (Sicherheit); Starkregen → automatisch drinnen, eigene Wahl möglich;
     // Regen → eigene Entscheidung, nur Hinweis „drinnen empfohlen“
+    var ti = dayInfo(st, abs, phaseOf(st, abs)).type;
+    if (auto && ti === 'RECOVER' && coldDay(st, abs) && OUTDOOR.indexOf(ort) >= 0 && !why) { ort = indoorFor(p); why = 'cold'; }
     var forced = wx && (wx.cond === 'gewitter' || wx.cond === 'glaette');
     if (wx && (forced || (wx.cond === 'starkregen' && auto)) && OUTDOOR.indexOf(ort) >= 0) { ort = indoorFor(p); why = 'weather'; }
     // R5-QA M1: U12–U15 nie im Dunkeln draußen – auch nicht zu zweit oder in der Gruppe
     if (!li.light && young15 && OUTDOOR.indexOf(ort) >= 0) { ort = indoorFor(p); why = 'dark-u16'; }
     var offer = auto && li.light && !(wx && (wx.bad || wx.rain)) && pl.indexOf('platz') >= 0 && ort !== 'platz' && (wd(abs) >= 5 || !li.darkSeason);
     var text = why === 'dark' ? 'Heute drinnen, weil es um ' + hhmm(li.sunset) + ' dunkel wird.' : why === 'weather' ? 'Heute drinnen, weil ' + wx.label + ' (Beispielwetter).' :
-      why === 'dark-u16' ? 'Heute drinnen – im Dunkeln trainierst du nicht draußen.' : null;
+      why === 'dark-u16' ? 'Heute drinnen – im Dunkeln trainierst du nicht draußen.' : why === 'cold' ? 'Heute drinnen, weil es kalt ist – Erholung und Mobility gehen gut drinnen.' : null;
     return { ort: ort, people: people, auto: auto, why: why, text: text, light: li.light, sunset: li.sunset, start: li.start, limit: li.limit, darkSeason: li.darkSeason, offerPlatz: offer, wx: wx,
       rainOut: !!(wx && wx.rain && OUTDOOR.indexOf(ort) >= 0),
       darkHint16: !li.light && !young15 && OUTDOOR.indexOf(ort) >= 0 };
@@ -2948,7 +2985,7 @@ var Engine = (function () {
     // R5-QA H4: Kopfball nur mit Softball/Schaumstoffball – kein Ball-Ersatz; ohne Softball fällt die Übung weg
     var head = (TAGS[d.id] || []).indexOf('header') >= 0;
     return EQUIP.filter(function (e) { return e.re.test(txt) && !(head && e.id === 'ball'); }).map(function (e) {
-      return { id: e.id, label: e.label, alt: head && e.id === 'softball' ? HEAD_EQUIP_ALT : e.alt, missing: have ? have.indexOf(e.id) < 0 : null }; });
+      return { id: e.id, label: e.label, alt: head && e.id === 'softball' ? HEAD_EQUIP_ALT : e.id === 'matte' && st && coldDay(st, st.today) ? 'Teppich oder Isomatte – drinnen' : e.alt, missing: have ? have.indexOf(e.id) < 0 : null }; });
   }
   // Positions-Hinweis für Schwerpunkte (ab U14)
   function focusHint(age, position, id) {
@@ -3531,8 +3568,8 @@ var Illus = (function () {
   function num(v) { return String(v).replace('.', ','); }
   var ILBL = ['', 'leicht', 'mittel', 'intensiv'];
   // B-09: kurze Labels (≥ 11 px lesbar), volle Bezeichnung im aria-label / Tagesdetail
-  var SHORT_T = { 'MD': 'Spiel', 'MD+1': 'Regen', 'MD-1': 'Aktiv', 'TEAM': 'Team', 'EXTRA': 'Extra', 'REST': 'Frei', 'BLOCK': 'Block', 'RECOVER': 'Erhol', 'URLAUB': 'Url.', 'KRANK': 'Krank' };
-  var MON_T = { 'MD': 'Spiel', 'MD+1': 'Regen', 'MD-1': 'Aktiv', 'TEAM': 'Team', 'EXTRA': 'Extra', 'REST': 'frei', 'BLOCK': 'Block', 'RECOVER': 'lock.', 'URLAUB': 'Url.', 'KRANK': 'krank' };
+  var SHORT_T = { 'MD': 'Spiel', 'MD+1': 'Erhol.', 'MD-1': 'Aktiv', 'TEAM': 'Team', 'EXTRA': 'Extra', 'REST': 'Frei', 'BLOCK': 'Block', 'RECOVER': 'Erhol', 'URLAUB': 'Url.', 'KRANK': 'Krank' };
+  var MON_T = { 'MD': 'Spiel', 'MD+1': 'Erhol.', 'MD-1': 'Aktiv', 'TEAM': 'Team', 'EXTRA': 'Extra', 'REST': 'frei', 'BLOCK': 'Block', 'RECOVER': 'lock.', 'URLAUB': 'Url.', 'KRANK': 'krank' };
   var FOOT_LBL = { links: 'Links', rechts: 'Rechts', beide: 'Beidfüßig' };
   var CHIP_POS = { IVL: 'IV li', IVR: 'IV re' };
   function dname(d) { return d.var ? d.var.n : d.name; }
@@ -3552,6 +3589,8 @@ var Illus = (function () {
       weekView: 'woche', monthOff: 0, act: null, recipe: null, meal: 'fruehstueck', homeLevel: 2, recipeTag: 'Alle', rate: null, flow: null, review: null, pain: null, absence: null,
       showPast: false, pastPhases: false, placeOpen: false, ev: null, inj: null, clr: null, cal: null, pm: null, scroll: {}, ovScroll: {}, sub: null, psub: null };
   }
+  // A22: verständlichere Erklärung (Du-Form), eine Quelle für alle Stellen
+  var LOOP_TXT = 'Du trainierst wie geplant. Danach tippst du 1 Zahl: Wie anstrengend war es? Manchmal fragt dich Fokus11 morgens kurz, wie es dir geht. Daraus lernt dein Plan: Wenn viel zu anstrengend war, wird es leichter – wenn es gut passt, steigern wir langsam.';
   var ui = freshUi();
 
   function completeProfile(p) {
@@ -3689,10 +3728,10 @@ var Illus = (function () {
         '<div class="topbar' + (shared() ? ' hasSw' : '') + '"><div class="logo" aria-label="Fokus11 Prototyp">Fokus<b>11</b> <span class="badge">Prototyp</span></div>' +
         '<div class="row" style="gap:6px"><span class="sub">' + esc(E.DAY_SHORT[E.wd(S.today)]) + ', ' + fmt(S.today) + '</span><button class="helpbtn" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + 'Hilfe</button>' +
         (shared() ? '<button class="swbtn" data-a="to-parent" aria-label="Zum Elternbereich"><span><span class="swl">Zum&nbsp;</span>Eltern<span class="swl">bereich</span></span></button>' : '') +
-        '<button class="avbtn" data-a="tab" data-v="profil" aria-label="Ich – Profil und Einstellungen">' + esc((S.profile.name || '?').charAt(0).toUpperCase()) + '</button></div></div>' +
+        (ui.tab === 'profil' ? '<button class="iconbtn" data-a="ich-close" aria-label="Ich schließen">' + IC.close + '</button>' : '<button class="avbtn" data-a="tab" data-v="profil" aria-label="Ich – Profil und Einstellungen">' + esc((S.profile.name || '?').charAt(0).toUpperCase()) + '</button>') + '</div></div>' +
         '<main id="main" tabindex="-1">' + main + '</main>' +
-        '<nav class="tabbar" role="tablist" aria-label="Hauptnavigation">' +
-        ['heute', 'woche', 'essen', 'profil'].map(function (t) {
+        '<nav class="tabbar' + (ui.tab === 'profil' ? ' ich' : '') + '" role="tablist" aria-label="Hauptnavigation">' +
+        ['heute', 'woche', 'essen'].map(function (t) {
           var lbl = { heute: 'Heute', woche: 'Woche', essen: 'Essen', profil: 'Ich' }[t];
           return '<button class="tab" role="tab" aria-selected="' + (ui.tab === t) + '" data-a="tab" data-v="' + t + '"><span class="ti">' + IC[t] + '</span>' + lbl + '</button>';
         }).join('') + '</nav>';
@@ -3791,7 +3830,7 @@ var Illus = (function () {
     h += '<p class="hello">' + greet + ', ' + esc(p.name) + ' <span class="tag">' + esc(ph.label) + '</span></p>';
     if (t !== realTodayAbs()) h += '<p class="demoline"><b>Demo:</b> Datum ' + fmtY(t) + ' <button class="linkbtn sm" data-a="demo-today">Zurück zu heute</button></p>';
     if (!S.loopSeen && S.loopFirst == null) { S.loopFirst = t; save(); }
-    if (!S.loopSeen && !(t - S.loopFirst >= 3)) h += '<p class="loopline">Nach dem Training 1 Zahl, manchmal morgens ein kurzer Check → dein Plan passt sich an. <button class="linkbtn sm" data-a="dismiss-loop">OK</button></p>';
+    if (!S.loopSeen && !(t - S.loopFirst >= 3)) h += '<p class="loopline">' + LOOP_TXT + ' <button class="linkbtn sm" data-a="dismiss-loop">OK</button></p>';
     // Hinweise sammeln: Sicherheit (p ≤ 1) sichtbar, fällige Fragen (max. 1), alles andere eingeklappt
     var B = [];
     // R5b: einmaliger, ehrlicher Hinweis auf dem gemeinsamen Gerät
@@ -3808,7 +3847,7 @@ var Illus = (function () {
     var pp = preview() && ui.previewPain && t >= ui.previewPain.day && t <= ui.previewPain.day + 2 ? ui.previewPain : null;
     if (pp) B.push({ p: 0, h: pp.region === 'kopf' ? '<section class="banner warnb" role="alert">' + IC.heart + '<div><h3>Heute kein Training</h3><p class="sub" style="margin:4px 0 0">Du hast „Kopf“ gemeldet. ' + esc(E.HEAD_TXT) + ' Bitte trainiere bis ' + E.DAY_NAMES[E.wd(pp.day + 2)] + ' nicht – auch wenn die Karte oben noch eine Einheit zeigt (' + (u16() ? 'Vorschau, ' : '') + 'nichts gespeichert).</p></div></section>' :
       '<section class="banner calm">' + IC.heart + '<div><h3>Bitte schon dich</h3><p class="sub" style="margin:4px 0 0">Du hast Schmerzen gemeldet. Bis ' + E.DAY_NAMES[E.wd(pp.day + 2)] + ': ' + (pp.region ? 'trainiere ' + esc(E.REGION_SPARE[pp.region].text) : 'keine Sprünge und Sprints') + ' – ' + (u16() ? 'in der Vorschau passen wir die Einheit noch nicht an' : 'ohne gespeicherte Angaben passen wir die Einheit nicht an') + '. Wenn etwas weh tut: hör auf.</p></div></section>' });
-    if (!S.loopSeen && t - S.loopFirst >= 3) B.push({ p: 6, h: '<section class="banner loopb">' + IC.spark.replace('#b45309', '#15803d') + '<div style="flex:1"><h3>So funktioniert’s</h3><p style="margin:4px 0 0;font-weight:600">Nach dem Training 1 Zahl, manchmal morgens ein kurzer Check → dein Plan passt sich an.</p><button class="linkbtn" data-a="dismiss-loop">Verstanden</button></div></section>' });
+    if (!S.loopSeen && t - S.loopFirst >= 3) B.push({ p: 6, h: '<section class="banner loopb">' + IC.spark.replace('#b45309', '#15803d') + '<div style="flex:1"><h3>So funktioniert’s</h3><p style="margin:4px 0 0;font-weight:600">' + LOOP_TXT + '</p><button class="linkbtn" data-a="dismiss-loop">Verstanden</button></div></section>' });
     if (E.sickCare(S, t)) B.push({ p: 1, h: '<section class="banner calm">' + IC.heart + '<div><h3>Gute Besserung</h3><p class="sub" style="margin:4px 0 0">' + esc(E.SICK_TXT) + '</p></div></section>' });
     var pains = E.activePains(S, t);
     if (pains.length) {
@@ -3858,6 +3897,8 @@ var Illus = (function () {
     var lastH = p.heights.length ? p.heights.slice().sort(function (a, b) { return a.d - b.d; }).pop() : null;
     if (lastH && t - lastH.d >= 42) B.push({ p: 5, h: '<section class="banner info">' + IC.info + '<div style="flex:1"><h3>Zeit zum Messen</h3><p class="sub" style="margin:4px 0 0">Deine letzte Messung ist über 6 Wochen her.</p><button class="linkbtn" data-a="go-sub" data-v="koerper">Jetzt messen</button></div></section>' });
     if (!lastH && S.created != null && t - S.created >= 7) B.push({ p: 5, h: '<section class="banner info">' + IC.info + '<div style="flex:1"><h3>Wie groß bist du?</h3><p class="sub" style="margin:4px 0 0">Optional: Damit erkennen wir Wachstumsschübe und passen Sprünge und Sprints an.</p><button class="linkbtn" data-a="go-sub" data-v="koerper">Unter Ich → Körper eintragen</button></div></section>' });
+    // A8: Spiel gelöscht → Plan/Wochenrahmen sind neu berechnet; Ersatzeinheit nur anbieten, nie automatisch
+    if (ui.matchGone != null && ui.matchGone >= t && !E.eventOn(S, ui.matchGone)) B.push({ p: 2, h: '<section class="banner info">' + IC.info + '<div style="flex:1"><h3>Spiel fällt weg</h3><p class="sub" style="margin:4px 0 0">Dein Plan und der Wochenrahmen sind neu berechnet. Möchtest du eine Einheit ergänzen?</p><div class="row mt8"><button class="btn sec sm" data-a="gone-add">Einheit eintragen</button><button class="linkbtn" data-a="gone-no">Nein danke</button></div></div></section>' });
     var sh = E.seasonHint(S, t);
     B.push({ p: 7, h: '<section class="banner info">' + IC.info + '<div><h3>' + esc(sh.title) + '</h3><p class="sub" style="margin:4px 0 0">' + esc(sh.text) + '</p></div></section>' });
     var tr = E.sleepTrend(S);
@@ -3865,8 +3906,9 @@ var Illus = (function () {
     B.sort(function (a, b) { return a.p - b.p; });
     var Q = B.filter(function (x) { return x.q; }), SAFE = B.filter(function (x) { return !x.q && x.p <= 1; }), REST = B.filter(function (x) { return !x.q && x.p > 1; });
     // 1 Tageskarte
-    h += dayCard(pl, t);
-    if (ui.placeOpen && pl.drills.length) h += '<div class="placewrap">' + placeChooser(E.placeFor(S, t), 'place', t) + '</div>';
+    // A5: Tipp auf einen Tag der Wochenleiste zeigt dessen Vorschau in der großen Karte (öffnet nichts)
+    if (ui.heuteDay != null && ui.heuteDay !== t) h += dayCard(E.plan(S, ui.heuteDay), ui.heuteDay, true);
+    else h += dayCard(pl, t);
     // Sicherheit (immer sichtbar, max. 2) und höchstens 1 fällige Frage
     SAFE.slice(0, 2).forEach(function (x) { h += x.h; });
     REST = SAFE.slice(2).concat(REST);
@@ -3877,7 +3919,7 @@ var Illus = (function () {
     var md = E.eventOn(S, t) || E.eventOn(S, t + 1);
     if (md && !E.absenceOn(S, md.day)) h += matchCard(md, t);
     // 5 Schnellzugriffe
-    h += '<div class="quick"><button class="btn" data-a="open-add">+ Eintragen</button><button class="btn ghost" data-a="open-pain">Schmerz</button><button class="btn ghost" data-a="open-absence">Krank/Urlaub</button></div>';
+    h += '<div class="quick q2"><button class="btn" data-a="open-add">+ Eintragen</button><div class="minilinks"><button class="linkbtn" data-a="open-pain">Schmerz melden</button><button class="linkbtn" data-a="open-absence">Krank / Urlaub</button></div></div>';
     // 6 Essen & Trinken heute (eingeklappt)
     var fd = foodDay(info), fi = p.foodTracking ? E.foodInsights(S) : { recs: [] }, tt = pl.absent || pl.paused ? '' : trinkTipp(info.type);
     h += '<details class="hints food"' + (ui.openFood ? ' open' : '') + '><summary data-a="tog-food">Essen & Trinken heute</summary><div class="row mt8">' + plateSvg(fd.pd, 54) + '<div style="font-size:13px;line-height:1.4"><b>' + esc(fd.title) + '</b>: ' + esc(fd.carb) +
@@ -3889,37 +3931,41 @@ var Illus = (function () {
     return h;
   }
   // Tageskarte: ganz antippbar (öffnet Tag/Einheit), Wetter-/Jahreszeit-Chip, „Heute drinnen, weil …“
-  function dayCard(pl, t) {
+  function dayCard(pl, t, prev) {
     var info = pl.info, mdOpen = info.type === 'MD' && !S.matches[t], pi = E.placeInfo(S, t), acts = S.activities.filter(function (a) { return a.day === t; });
     var title = pl.paused ? 'Training pausiert' : dayTitle(info, pl), offer = E.replacementOffer(S, t), b = '';
-    var k = 'Heute · ' + info.short + ' ' + fmt(t) + (pl.md ? ' · Empfehlung nach dem Spiel' + (pl.md.optional ? ' (freiwillig)' : '') : '') + (info.team && info.type !== 'TEAM' ? ' · mit Teamtraining' : '') + (info.teamOff ? ' · Teamtraining fällt aus' : '') + (info.teamSkip ? ' · du gehst heute nicht zum Teamtraining' : '');
-    b += '<div class="k">' + esc(k) + '</div><h2>' + esc(title) + '</h2><p>' + esc(pl.note) + (pl.md && pl.md.reason && pl.md.level !== 'default' ? ' ' + esc(pl.md.reason) : '') + '</p>';
-    if (pl.drills.length) b += '<p class="dcmeta">' + pl.minutes + ' Min · ' + nUeb(pl.drills.length) + ' · ' + ILBL[pl.intensity] + (E.isAdjusted(S, t) ? ' · angepasst' : '') + (pl.done ? ' · erledigt ✓' : '') + '</p>';
+    var k = (prev ? 'Vorschau · ' : 'Heute · ') + info.short + ' ' + fmt(t) + (pl.md ? ' · Empfehlung nach dem Spiel' + (pl.md.optional ? ' (freiwillig)' : '') : '') + (info.team && info.type !== 'TEAM' ? ' · mit Teamtraining' : '') + (info.teamOff ? ' · Teamtraining fällt aus' : '') + (info.teamSkip ? ' · du gehst heute nicht zum Teamtraining' : '');
+    // A3: feste Struktur – Titel, Dauer/Intensität, Übungsliste kompakt, Warum, Chips; Ort/Personen wählt man in der Einheit
+    b += '<div class="k">' + esc(k) + '</div><h2>' + esc(title) + '</h2>';
+    if (pl.drills.length) b += '<p class="dcmeta">' + pl.minutes + ' Min · ' + nUeb(pl.drills.length) + ' · ' + ILBL[pl.intensity] + (E.isAdjusted(S, t) ? ' · angepasst' : '') + (pl.done ? ' · erledigt ✓' : '') + '</p>' +
+      '<p class="dcdrills">' + esc(pl.drills.slice(0, 4).map(dname).join(' · ')) + (pl.drills.length > 4 ? ' · +' + (pl.drills.length - 4) : '') + '</p>';
+    b += '<p class="dcwarum"><b>Warum:</b> ' + esc(pl.note) + (pl.md && pl.md.reason && pl.md.level !== 'default' ? ' ' + esc(pl.md.reason) : '') + '</p>';
     if (pl.matchCare) b += '<p class="care">Sprich mit deinem Trainer, ob und wie lange du spielst.</p>';
-    b += '<div class="dcrow">' + wxChip(t) + (pl.drills.length ? '<button class="dcchip btnchip" data-a="place-toggle" aria-expanded="' + ui.placeOpen + '">' + esc(placeLine(E.placeFor(S, t))) + ' ✎</button>' : '') + '</div>';
-    if (pl.drills.length && pi.text) b += '<p class="dcwhy">' + esc(pi.text) + ' <button class="linkbtn light sm" data-a="place-toggle">ändern</button></p>';
-    if (pl.drills.length && pi.offerPlatz) b += '<p class="dcwhy">Heute hell bis ca. ' + E.hhmm(pi.limit) + ' – Lust auf den Bolzplatz? <button class="linkbtn light sm" data-a="place" data-k="ort" data-v="platz">Ja, Platz</button></p>';
-    if (pl.drills.length && pi.rainOut) b += '<p class="dcwhy">Regen (Beispielwetter) – drinnen empfohlen. Du entscheidest selbst. <button class="linkbtn light sm" data-a="place-toggle">Ort ändern</button></p>';
+    b += '<div class="dcrow">' + wxChip(t) + (pl.drills.length ? '<span class="dcchip">' + esc(placeLine(E.placeFor(S, t))) + '</span>' : '') + '</div>';
     if (acts.length) b += '<p class="dcwhy">Eingetragen: ' + esc(acts.map(actLine).join(', ')) + '</p>';
     var btns = '';
-    if (pl.drills.length) btns += '<button class="btn light" data-a="start-session">' + (pl.done ? 'Nochmal starten' : 'Training starten') + '</button>';
     var basicsLink = false;
-    if (!pl.drills.length && pl.basics) basicsLink = true; // Ruhetag: höchstens 1 Knopf – Basics nur als Textlink
+    if (!prev && !pl.drills.length && pl.basics) basicsLink = true; // Ruhetag: höchstens 1 Knopf – Basics nur als Textlink
+    if (prev) { mdOpen = false; offer = null; }
     if (mdOpen && !pl.paused) btns += '<button class="btn light" data-a="open-match" data-v="' + t + '">Spiel vorbei? Eintragen</button>';
     if (offer && !offer.on) btns += '<button class="btn light" data-a="offer" data-v="' + t + '">Ersatz: 20 Min einplanen?</button>';
     var md = E.eventOn(S, t) || E.eventOn(S, t + 1);
-    if (!md) { var bd = E.bagFor(S, t) ? t : E.bagFor(S, t + 1) && !E.absenceOn(S, t + 1) ? t + 1 : null; if (bd != null) btns += bagBtn(bd, 'btn light') + (bd === t + 1 ? '<span class="dcsmall">für morgen</span>' : ''); }
+    if (!md && !prev) { var bd = E.bagFor(S, t) ? t : E.bagFor(S, t + 1) && !E.absenceOn(S, t + 1) ? t + 1 : null; if (bd != null) btns += bagBtn(bd, 'btn light') + (bd === t + 1 ? '<span class="dcsmall">für morgen</span>' : ''); }
     if (basicsLink && !btns) btns += '<button class="btn light" data-a="start-basics">Optional: 10 Min Basics</button>';
     else if (basicsLink) b += '<p class="dcwhy"><button class="linkbtn light sm" data-a="start-basics">Optional: 10 Min Basics</button></p>';
+    if (prev) btns += '<button class="btn light" data-a="day" data-v="' + t + '">Tag öffnen</button><button class="btn light" data-a="heute-back">Zurück zu heute</button>';
+    else if (pl.drills.length) btns += '<button class="btn light" data-a="start-session">' + (pl.done ? 'Nochmal starten' : 'Training starten') + '</button>'; // A4: erst Überblick, Start unten
     if (btns) b += '<div class="dcbtns">' + btns + '</div>';
     return '<section class="daycard tap t-' + cls(info.type) + (pl.paused ? ' paused' : '') + '" role="button" tabindex="0" data-a="day" data-v="' + t + '" aria-label="Heute öffnen: ' + esc(title) + '">' + IC.ball + '<span class="dcarrow" aria-hidden="true">›</span>' + b + '</section>';
   }
   // Wochenleiste (Tipp → Tag)
   function weekStrip(t) {
-    var ws = t - E.wd(t), h = '<div class="strip mini" aria-label="Diese Woche – Tippen öffnet den Tag">';
+    var wk = ui.heuteWk || 0, ws = t - E.wd(t) + 7 * wk, m1 = dateOf(ws).getMonth(), m2 = dateOf(ws + 6).getMonth();
+    // A9: Monatszeile + Wochen wechseln
+    var h = '<div class="wkhead"><button class="iconbtn sm" data-a="heute-wk" data-v="-1" aria-label="Woche zurück">' + IC.back + '</button><span class="wkmonth">' + MONTHS[m1] + (m2 !== m1 ? ' / ' + MONTHS[m2] : '') + ' ' + dateOf(ws + 3).getFullYear() + (wk ? ' · <button class="linkbtn sm" data-a="heute-wk" data-v="0">heute</button>' : '') + '</span><button class="iconbtn sm" data-a="heute-wk" data-v="1" aria-label="Woche vor">' + IC.fwd + '</button></div><div class="strip mini" aria-label="Woche – Tippen zeigt den Tag oben">';
     for (var i = 0; i < 7; i++) {
       var a = ws + i, pl = E.plan(S, a), inf = pl.info;
-      h += '<button class="sd' + (a === t ? ' today' : '') + (a < t ? ' pastd' : '') + '" data-a="day" data-v="' + a + '" aria-label="' + inf.dayName + ': ' + esc(dayWhat(a)) + ', ' + inf.label + '"><span class="d">' + inf.short + '</span><span class="ty bg-' + cls(inf.type) + '">' + (pl.paused ? 'Pause' : typeShort(inf)) + '</span></button>';
+      h += '<button class="sd' + (a === t ? ' today' : '') + (a < t ? ' pastd' : '') + ((ui.heuteDay != null ? ui.heuteDay : t) === a ? ' sel' : '') + '" aria-pressed="' + ((ui.heuteDay != null ? ui.heuteDay : t) === a) + '" data-a="heute-day" data-v="' + a + '" aria-label="' + inf.dayName + ': ' + esc(dayWhat(a)) + ', ' + inf.label + '"><span class="d">' + inf.short + '</span><span class="ty bg-' + cls(inf.type) + '">' + (pl.paused ? 'Pause' : typeShort(inf)) + '</span></button>';
     }
     return h + '</div>';
   }
@@ -3951,8 +3997,10 @@ var Illus = (function () {
   }
   function evLine(evs) { return evs.map(function (e) { return (e.kind === 'turnier' ? 'Turnier ' : '') + fmtD(e.day); }).join(', '); }
   function viewWeekList() {
-    var t = S.today, start = t - E.wd(t), ph = E.phaseOf(S, t), evs = E.eventsBetween(S, start, start + 6), fr = E.weekFrame(S, start);
+    var t = S.today, woff = ui.weekOff || 0, tb = t + 7 * woff, start = tb - E.wd(tb), ph = E.phaseOf(S, tb), evs = E.eventsBetween(S, start, start + 6), fr = E.weekFrame(S, start);
     var h = '<p class="sub mt8">' + fmt(start) + ' – ' + fmt(start + 6) + ' · ' + (evs.length > 1 ? 'Englische Woche: ' + evLine(evs) : evs.length ? (evs[0].kind === 'turnier' ? 'Turnier ' : 'Spiel ') + fmtD(evs[0].day) : ph.brk ? esc(ph.label) + ' (keine Spiele)' : 'spielfreie Woche') + '</p>';
+    // A9: Woche vor/zurück
+    h += '<div class="wknav" role="group" aria-label="Woche wechseln"><button class="iconbtn" data-a="week" data-v="-1" aria-label="Woche zurück">' + IC.back + '</button><button class="linkbtn" data-a="week" data-v="0"' + (woff ? '' : ' disabled') + '>' + (woff ? 'Zur aktuellen Woche' : 'Diese Woche') + '</button><button class="iconbtn" data-a="week" data-v="1" aria-label="Woche vor">' + IC.fwd + '</button></div>';
     h += '<p class="frame"><b>' + esc(fr.text) + '</b><br><span class="sub">' + esc(fr.why) + '</span></p>';
     var plans = []; for (var i = 0; i < 7; i++) plans.push(E.plan(S, start + i));
     h += '<div class="strip" aria-label="Wochenübersicht – Tippen springt zum Tag">' + plans.map(function (pl) {
@@ -3961,9 +4009,9 @@ var Illus = (function () {
         '<span class="d">' + inf.short + '</span><span class="ty bg-' + cls(inf.type) + (typeShort(inf).length > 6 ? ' long' : '') + '">' + (pl.paused ? 'Pause' : typeShort(inf)) + '</span>' + (adj ? '<span class="adjdot" aria-hidden="true"></span>' : '') +
         '<span class="um" aria-hidden="true">' + (pl.drills.length ? pl.minutes + '′' : '–') + '</span></button>';
     }).join('') + '</div>';
-    var past = plans.filter(function (pl) { return pl.info.abs < t; });
+    var past = woff ? [] : plans.filter(function (pl) { return pl.info.abs < t; });
     if (past.length && !ui.showPast) h += '<button class="pastbtn" data-a="show-past">' + past[0].info.short + (past.length > 1 ? '–' + past[past.length - 1].info.short : '') + ' anzeigen</button>';
-    h += plans.filter(function (pl) { return ui.showPast || pl.info.abs >= t; }).map(function (pl) {
+    h += plans.filter(function (pl) { return ui.showPast || woff || pl.info.abs >= t; }).map(function (pl) {
       var inf = pl.info, adj = E.isAdjusted(S, inf.abs), ck = S.checkins.some(function (c) { return c.day === inf.abs && c.kind === 'session'; });
       var acts = S.activities.filter(function (a) { return a.day === inf.abs; });
       var sum = pl.paused ? 'Training pausiert' : pl.drills.length ? nUeb(pl.drills.length) + (pl.optional ? ' (optional)' : '') : (pl.absent ? 'Kein Plan' : inf.team ? 'Nur Teamtraining' : inf.type === 'MD' ? (inf.ev && inf.ev.dur ? inf.ev.dur + ' Min Spielzeit' : 'Spiel') : 'Kein Zusatztraining');
@@ -3974,7 +4022,7 @@ var Illus = (function () {
         (acts.length ? '<div class="sub" style="font-size:12.5px;color:var(--c-team)">+ ' + acts.map(function (a) { return esc((E.ACT_BY_ID[a.type] || {}).label) + (a.min ? ' ' + a.min + ' Min' : ''); }).join(', ') + '</div>' : '') +
         (dayAppts(inf.abs).length || (E.eventOn(S, inf.abs) && E.eventOn(S, inf.abs).time) ? '<div class="sub" style="font-size:12.5px">' + esc(dayWhat(inf.abs)) + '</div>' : '') + '</div></button>';
     }).join('');
-    h += '<div class="row mt12 wrap"><button class="btn" style="flex:1" data-a="open-add">+ Eintragen</button><button class="btn ghost" style="flex:1" data-a="open-home">Kraft zu Hause</button></div>';
+    h += '<div class="row mt12 wrap"><button class="btn" style="flex:1" data-a="open-add">+ Eintragen</button></div>';
     h += '<p class="note">Intensität = wie anstrengend die härteste Übung ist. Umfang = Minuten deiner Einheit. Teamtraining und Spiel kommen dazu. Tippe auf einen Tag für Details.</p>';
     return h;
   }
@@ -3990,17 +4038,26 @@ var Illus = (function () {
       for (var i = 0; i < 7; i++) {
         var a = start + w * 7 + i, d = dateOf(a), inM = d.getMonth() === first.getMonth(), inf = E.info(S, a);
         var done = (S.sessions || []).some(function (s) { return s.day === a; }), lbl = inf.label === 'Turnier' ? 'Turn.' : inf.team && (inf.type === 'MD-1' || inf.type === 'MD+1') ? 'Team' : MON_T[inf.type];
-        h += '<button role="gridcell" class="mc mc-' + cls(inf.type) + (inM ? '' : ' out') + (a === S.today ? ' today' : '') + '" data-a="day" data-v="' + a + '" aria-label="' + d.getDate() + '. ' + MONTHS[d.getMonth()] + ': ' + inf.label + '">' +
+        h += '<button role="gridcell" class="mc mc-' + cls(inf.type) + (inM ? '' : ' out') + (a === S.today ? ' today' : '') + (ui.monthSel === a ? ' sel' : '') + '" data-a="mday" data-v="' + a + '" aria-pressed="' + (ui.monthSel === a) + '" aria-label="' + d.getDate() + '. ' + MONTHS[d.getMonth()] + ': ' + inf.label + '">' +
           '<span class="n">' + d.getDate() + '</span><span class="ml">' + lbl + '</span>' + (done ? '<span class="mck" aria-hidden="true">✓</span>' : '') + '</button>';
       }
       h += '</div>';
     }
     h += '</div>';
+    // A10: Tag-Detail direkt unter dem Kalender
+    if (ui.monthSel != null) {
+      var sp = E.plan(S, ui.monthSel), si = sp.info, sev = E.eventOn(S, ui.monthSel);
+      h += '<section class="card mday" aria-live="polite"><div class="row between"><h3>' + esc(si.dayName) + ', ' + fmt(ui.monthSel) + '</h3><span class="tag">' + esc(sp.paused ? 'Pause' : si.label) + '</span></div>' +
+        '<p class="sub" style="margin:4px 0 0">' + esc(sp.note) + '</p>' +
+        (sp.drills.length ? '<p class="iu">Intensität: <b>' + ILBL[sp.intensity] + '</b> · Umfang: <b>' + sp.minutes + ' Min</b> · ' + nUeb(sp.drills.length) + '</p>' : '') +
+        (sev || dayAppts(ui.monthSel).length ? '<p class="sub" style="margin:4px 0 0">' + esc(dayWhat(ui.monthSel)) + '</p>' : '') +
+        '<div class="row mt8 wrap"><button class="btn sec sm" data-a="day" data-v="' + ui.monthSel + '">Alle Details</button><button class="linkbtn" data-a="mday-close">Schließen</button></div></section>';
+    }
     var lastAbs = firstAbs + daysIn - 1, evs = E.eventsBetween(S, firstAbs, lastAbs), aps = (S.appts || []).filter(function (x) { return x.day >= firstAbs && x.day <= lastAbs; });
     var lines = evs.map(function (e) { return { day: e.day, t: evName(e) + (e.time ? ' ' + e.time : '') + (e.opp ? ' gegen ' + e.opp : '') + ' · ' + e.dur + ' Min' }; })
       .concat(aps.map(function (x) { return { day: x.day, t: E.apptLabel(x) }; })).sort(function (a, b) { return a.day - b.day; });
     h += '<section class="card"><div class="row between"><h3>Termine im ' + MONTHS[first.getMonth()] + '</h3><button class="btn sec sm" data-a="open-add">+ Eintragen</button></div>' +
-      (lines.length ? '<ul class="plain mt8">' + lines.map(function (e) { return '<li><button class="linkbtn" data-a="day" data-v="' + e.day + '">' + fmtD(e.day) + ' · ' + esc(e.t) + '</button></li>'; }).join('') + '</ul>' : '<p class="sub" style="margin:6px 0 0">Keine Termine in diesem Monat.</p>') + '</section>';
+      (lines.length ? '<ul class="plain mt8">' + lines.map(function (e) { return '<li><button class="linkbtn" data-a="mday" data-v="' + e.day + '">' + fmtD(e.day) + ' · ' + esc(e.t) + '</button></li>'; }).join('') + '</ul>' : '<p class="sub" style="margin:6px 0 0">Keine Termine in diesem Monat.</p>') + '</section>';
     if (ui.monthOff !== 0) h += '<button class="linkbtn" data-a="month" data-v="0">Zum aktuellen Monat</button>';
     return h;
   }
@@ -4088,6 +4145,7 @@ var Illus = (function () {
     var p = S.profile, k = ui.foodType || plateFor(E.info(S, S.today).type, E.info(S, S.today).team), pd = PLATES[k];
     var h = '<h1 class="mt8">Essen</h1>';
     h += '<section class="banner info drinkb">' + IC.info + '<div><h3>Trinken</h3><p class="sub" style="margin:4px 0 0">Trink über den Tag verteilt Wasser oder ungesüßten Tee – an Trainings- und Spieltagen etwas mehr, beim Training zwischendurch ein paar Schlucke.</p></div></section>';
+    h += '<section class="card"><h3>Timing</h3><ul style="margin:8px 0 0;padding-left:18px">' + pd.tips.map(function (t) { return '<li style="margin:6px 0">' + esc(t) + '</li>'; }).join('') + '</ul></section>';
     h += '<div class="trow card flat" style="margin-top:10px;padding:6px 12px"><div style="flex:1"><b>Essen eintragen</b><div class="sub" style="font-size:12.5px">Optional – nur antippen, nichts zählen, nichts wiegen.</div></div><button class="switch" role="switch" aria-checked="' + p.foodTracking + '" aria-label="Essen eintragen" data-a="food-toggle"></button></div>';
     var et = E.energyTip(S);
     if (et) h += '<section class="banner calm">' + IC.heart + '<div style="flex:1"><h3>Kurz zu Energy Drinks</h3><p class="sub" style="margin:4px 0 0">' + esc(et) + '</p><button class="linkbtn" data-a="energy-seen">Verstanden</button></div></section>';
@@ -4115,7 +4173,6 @@ var Illus = (function () {
     h += '<div class="tabs2" role="tablist" aria-label="Tagestyp wählen">' + ['spiel', 'training', 'ruhe'].map(function (t) {
       return '<button role="tab" aria-selected="' + (t === k) + '" data-a="food" data-v="' + t + '">' + PLATES[t].title + '</button>'; }).join('') + '</div>';
     h += '<section class="card"><h3>Der Teller-Trick</h3><div class="plate">' + plateSvg(pd, 130) + plateLegend(pd) + '</div><p class="note">' + PLATE_TXT + '</p></section>';
-    h += '<section class="card"><h3>Timing</h3><ul style="margin:8px 0 0;padding-left:18px">' + pd.tips.map(function (t) { return '<li style="margin:6px 0">' + esc(t) + '</li>'; }).join('') + '</ul></section>';
     var tags = ['Alle', 'Spieltag', 'Nach dem Training', 'Snack', 'Frühstück', 'vegetarisch'], tg = ui.recipeTag;
     var list = E.RECIPES.filter(function (r) { return tg === 'Alle' || r.tags.indexOf(tg) >= 0; });
     h += '<section class="card"><h3>' + (fullRecipes() ? 'Rezepte' : 'Gericht-Ideen') + '</h3>' + (fullRecipes() ? '' : '<p class="sub" style="margin:2px 0 0;font-size:12.5px">Ideen zum Anschauen. Ausführliche Rezepte finden deine Eltern im Elternkonto.</p>') +
@@ -4560,7 +4617,9 @@ var Illus = (function () {
     h = ({ help: ovHelp, session: ovSession, rate: ovRate, flow: ovFlow, review: ovReview, pain: ovPain, absence: ovAbsence, result: ovResult, day: ovDay, editFocus: ovEditFocus, editWeek: ovEditWeek,
       editPlayer: ovEditPlayer, editSeason: ovEditSeason, act: ovAct, home: ovHome, recipe: ovRecipe, event: ovEvent, inj: ovInj, clear: ovClear, add: ovAdd, bag: ovBag })[o]();
     var sc = ui.ovScroll[o] || 0, oldMsg = lastOverlay === o ? $ov.querySelector('.ov .ovmsg') : null;
-    if (lastOverlay !== o) h = h.replace('<div class="ov"', '<div class="ov anim"');
+    // A2: Schritte des Eintragen-Ablaufs bleiben in derselben Maske (nur der Inhalt blendet kurz ein, kein erneutes Hereinschieben)
+    var FLOW = { add: 1, act: 1, event: 1, absence: 1 };
+    if (lastOverlay !== o) h = h.replace('<div class="ov"', FLOW[o] && FLOW[lastOverlay] ? '<div class="ov step"' : '<div class="ov anim"');
     $ov.innerHTML = h;
     var nov = $ov.querySelector('.ov'); if (nov && oldMsg) nov.appendChild(oldMsg);
     var nb = $ov.querySelector('.body'); if (nb) nb.scrollTop = sc;
@@ -4568,7 +4627,9 @@ var Illus = (function () {
     lastOverlay = o;
   }
   function shell(title, body, footer, back) {
-    return '<div class="ov" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><header><button class="iconbtn" data-a="close-ov" aria-label="' + (back ? 'Zurück' : 'Schließen') + '">' + (back ? IC.back : IC.close) + '</button><h2>' + esc(title) + '</h2>' + (title !== 'Hilfe' ? '<button class="ovhelp" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + '<span>Hilfe</span></button>' : '') + '</header>' +
+    // A1: Hilfe schließt oben rechts (dort, wo sie geöffnet wird)
+    var cb = '<button class="iconbtn" data-a="close-ov" aria-label="' + (back ? 'Zurück' : 'Schließen') + '">' + (back ? IC.back : IC.close) + '</button>';
+    return '<div class="ov" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><header' + (title === 'Hilfe' ? ' class="hdr-r"' : '') + '>' + (title === 'Hilfe' ? '' : cb) + '<h2>' + esc(title) + '</h2>' + (title !== 'Hilfe' ? '<button class="ovhelp" data-a="open-help" aria-label="Hilfe – ohne Login">' + IC.help + '<span>Hilfe</span></button>' : cb) + '</header>' +
       '<div class="body">' + body + '</div>' + (footer ? '<footer>' + footer + '</footer>' : '') + '</div>';
   }
   function videoCard() {
@@ -4600,6 +4661,12 @@ var Illus = (function () {
   function mmss(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
   function ovSession() {
     var r = ui.run, d = r.drills[r.i];
+    if (r.pre) { // A3/A4: Überblick + Ort/Personen vor dem Start
+      var pi0 = E.placeInfo(S, S.today), pb = '<p class="sub" style="margin:0">' + r.drills.length + (r.drills.length === 1 ? ' Übung' : ' Übungen') + ' · ' + r.drills.reduce(function (a, x) { return a + x.min; }, 0) + ' Min</p><ol class="preov">' + r.drills.map(function (x) { return '<li><b>' + esc(dname(x)) + '</b> <span class="sub">' + x.min + ' Min · ' + ILBL[x.intensity] + '</span></li>'; }).join('') + '</ol>' +
+        '<h3 class="mt16" style="font-size:16px">Wo und mit wie vielen?</h3>' + placeChooser(E.placeFor(S, S.today), 'place', S.today) +
+        (pi0.text && pi0.why !== 'weather' && pi0.why !== 'dark-u16' ? '<p class="note">' + esc(pi0.text) + '</p>' : '') + (pi0.offerPlatz ? '<p class="note">Heute hell bis ca. ' + E.hhmm(pi0.limit) + ' – Lust auf den Bolzplatz? <button class="linkbtn sm" data-a="place" data-k="ort" data-v="platz">Ja, Platz</button></p>' : '') + (pi0.rainOut ? '<p class="note">Regen (Beispielwetter) – drinnen empfohlen. Du entscheidest selbst.</p>' : '');
+      return shell('Dein Training', pb, '<button class="btn block" data-a="run-go">Los geht’s</button>');
+    }
     var body = '<div class="prog" aria-hidden="true"><i style="width:' + (r.i / r.drills.length * 100) + '%"></i></div>' +
       '<p class="sub mt12">Übung ' + (r.i + 1) + ' von ' + r.drills.length + (r.basics ? '' : ' · ' + esc(placeLine(E.placeFor(S, S.today)))) + '</p>' +
       '<h2 style="font-size:26px">' + esc(dname(d)) + (r.swapMsg && r.swapped === d.id ? ' <span class="tag swaptag">getauscht</span>' : '') + '</h2>' + (d.weakFoot ? '<p class="wfline">Mit deinem schwachen Fuß (' + d.weakFoot + ')</p>' : '') + varTag(d) +
@@ -4909,7 +4976,7 @@ var Illus = (function () {
         '<div class="mdbtns">' + (ev.addr ? '<a class="btn sec sm" href="' + esc(mapsUrl(ev.addr)) + '" target="_blank" rel="noopener noreferrer">Route öffnen <small>(Google Maps)</small></a>' : '') + bagBtn(day) + icsBtn(day) + '</div>' +
         '<p class="note"><a href="https://www.fussball.de" target="_blank" rel="noopener noreferrer">Tabelle auf fussball.de</a> <span class="tag ph">Platzhalter</span> – im echten Produkt der Link zu deiner Mannschaftsseite. Fokus11 zeigt keine eigene Tabelle.</p>' +
         '<h3 class="mt12" style="font-size:15px">Spieldauer ' + ev.dur + ' Min</h3><p class="sub" style="margin:2px 0 0;font-size:13px">Vorbelegt nach Altersklasse – hier änderbar.</p>' + durChips(ev.dur, 'ev-dur') +
-        '<div class="row wrap"><button class="linkbtn" data-a="ev-edit" data-v="' + ev.day + '">Infos bearbeiten</button><button class="linkbtn" data-a="ev-del" data-v="' + ev.day + '">Termin löschen</button></div></section>';
+        '<div class="row wrap"><button class="linkbtn" data-a="ev-edit" data-v="' + ev.day + '">Anstoß, Treffpunkt, Gegner bearbeiten</button><button class="linkbtn" data-a="ev-del" data-v="' + ev.day + '">Termin löschen</button></div></section>';
     }
     dayAppts(day).forEach(function (x) {
       var K = E.APPT_BY_ID[x.kind] || {};
@@ -4976,7 +5043,7 @@ var Illus = (function () {
   // ---------- Termin (B1 + R5): Spiel, Turnier, Training einmalig, Physio, Arzt, Prüfungsphase ----------
   function openEvent(day, kind, edit) {
     var d = day != null ? day : S.today + 1, ex = edit ? E.eventOn(S, d) : null;
-    ui.ev = ex ? Object.assign({ edit: true, origDay: ex.day }, ex) : { day: d, to: null, kind: kind || 'spiel', dur: E.matchDur(S.profile.age), time: '', meet: '', home: null, opp: '', addr: '', hall: false };
+    ui.evReturn = null; ui.ev = ex ? Object.assign({ edit: true, origDay: ex.day }, ex) : { day: d, to: null, kind: kind || 'spiel', dur: E.matchDur(S.profile.age), time: '', meet: '', home: null, opp: '', addr: '', hall: false };
     evPrefill();
     ui.overlay = 'event'; ui.ovScroll.event = 0; renderOverlay();
   }
@@ -5105,12 +5172,12 @@ var Illus = (function () {
     var allowed = E.fociFor(age, position), prio = allowed.filter(function (f) { return f.prio; });
     var groups = E.FOCUS_GROUPS.filter(function (g) { return allowed.some(function (f) { return f.g === g.id && !f.prio; }); });
     var pg = position ? E.GROUP_LABEL[E.posGroup({ position: position })] : '';
-    return '<p class="sub" style="margin:0 0 10px">Erster Tipp = <b>Hauptschwerpunkt</b> (bekommt die meiste Zeit). Danach bis zu 2 <b>Nebenschwerpunkte</b>. Nochmal tippen = entfernen. Die Anteile siehst du unten.</p>' +
+    return '<p class="tipline">Weniger ist mehr: Ein Hauptziel über mehrere Wochen bringt dich weiter als alles auf einmal.</p>' +
+      '<p class="sub" style="margin:0 0 10px">Erster Tipp = <b>Hauptschwerpunkt</b> (bekommt die meiste Zeit). Danach bis zu 2 <b>Nebenschwerpunkte</b>. Nochmal tippen = entfernen. Die Anteile siehst du unten.</p>' +
       (prio.length ? '<div class="fgroup"><div class="fgl">Oft wichtig für ' + esc(pg) + '</div><div class="chips" role="group" aria-label="Oft wichtig für deine Position">' + prio.map(function (f) { return focusChip(f, sel); }).join('') + '</div></div>' : '') +
       groups.map(function (g) {
         return '<div class="fgroup"><div class="fgl">' + g.label + '</div><div class="chips" role="group" aria-label="' + g.label + '">' + allowed.filter(function (f) { return f.g === g.id && !f.prio; }).map(function (f) { return focusChip(f, sel); }).join('') + '</div></div>';
       }).join('') +
-      '<p class="tipline">Weniger ist mehr: Ein Hauptziel über mehrere Wochen bringt dich weiter als alles auf einmal.</p>' +
       '<p class="note">„allein: Teil“ = allein übst du die Technik, das Zusammenspiel kommt im Teamtraining. „ab 3 Pers.“ = richtig erst mit mehreren.</p>' +
       (AGES_I(age) < 2 ? '<p class="note">Ab der U14 kommen weitere Schwerpunkte dazu (z. B. Kopfball mit Softball, Flanken, Kraft).</p>' : '') +
       (sel.length ? '<p class="note">' + E.focusShares(sel).map(function (x) { return x.role + ' ' + E.focusLabel(x.id) + ' ≈ ' + Math.round(x.share * 100) + ' %'; }).join(' · ') + ' deiner Schwerpunkt-Zeit.</p>' : '');
@@ -5168,11 +5235,16 @@ var Illus = (function () {
       '<p class="note">Wo und mit wie vielen du trainierst, stellst du unter Ich → Mein Training ein.</p>', '<button class="btn block" data-a="save-edit">Speichern</button>');
   }
   function seasonYearFor(mm) { var s0 = dateOf(seasonStartAbs()).getFullYear(); return mm >= 6 ? s0 : s0 + 1; }
+  // A21: Beginn und Ende je Phase – das Ende ist der Tag vor dem Beginn der nächsten Phase (Phasen schließen lückenlos aneinander)
+  function seasonOrder(se) { return E.PHASES.slice().sort(function (a, b) { return se[a.id] < se[b.id] ? -1 : se[a.id] > se[b.id] ? 1 : 0; }); }
+  function mdToDate(v) { var a = v.split('-'); return new Date(seasonYearFor(+a[0]), +a[0] - 1, +a[1]); }
+  function dIso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function ovEditSeason() {
-    var b = '<p class="sub" style="margin:0">Standard für Deutschland, Österreich und die Schweiz. Passe die Starttermine an deinen Verband an.</p>';
-    b += E.PHASES.map(function (P) {
-      var v = ui.edit.season[P.id], a = v.split('-'), y = seasonYearFor(+a[0]);
-      return '<label class="f" for="se-' + P.id + '"><i class="dot" style="background:' + P.color + '"></i> ' + P.label + ' beginnt am</label><input id="se-' + P.id + '" type="date" value="' + y + '-' + v + '" data-bind="season.' + P.id + '">';
+    var b = '<p class="sub" style="margin:0">Standard für Deutschland, Österreich und die Schweiz. Passe Beginn und Ende an deinen Verband an. Die nächste Phase beginnt am Tag nach dem Ende.</p>', se = ui.edit.season, ord = seasonOrder(se);
+    b += ord.map(function (P, i) {
+      var nx = ord[(i + 1) % ord.length], v = se[P.id], d = mdToDate(nx.id === P.id ? v : se[nx.id]); if (mdToDate(se[nx.id]) <= mdToDate(v)) d = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate()); d.setDate(d.getDate() - 1);
+      return '<div class="seasonph"><label class="f" for="se-' + P.id + '"><i class="dot" style="background:' + P.color + '"></i> ' + P.label + ' beginnt am</label><input id="se-' + P.id + '" type="date" value="' + dIso(mdToDate(v)) + '" data-bind="season.' + P.id + '">' +
+        '<label class="f" for="sf-' + P.id + '">' + P.label + ' endet am</label><input id="sf-' + P.id + '" type="date" value="' + dIso(d) + '" data-bind="seasonend.' + nx.id + '"></div>';
     }).join('');
     return shell('Saison', b, '<button class="btn block" data-a="save-edit">Speichern</button>');
   }
@@ -5199,7 +5271,7 @@ var Illus = (function () {
       b += '<div class="q" role="group" aria-labelledby="aE"><div class="ql" id="aE">Anstrengung</div><div class="opt3">' + seg('effort', [['leicht', 'leicht'], ['mittel', 'mittel'], ['hart', 'hart']], a.effort, 'act') + '</div></div>';
     }
     b += '<p class="note">Physio, Arzt oder ein Termin? Das trägst du unter „Steht an“ ein.</p>';
-    return shell('Hab ich gemacht', b, '<button class="btn block" data-a="act-save"' + (a.type && !sickOn(a.day) ? '' : ' disabled') + '>Eintragen</button>');
+    return shell('Hab ich gemacht', b, '<button class="btn block" data-a="act-save"' + (a.type && !sickOn(a.day) ? '' : ' disabled') + '>Eintragen</button>', !!a.returnTo);
   }
   function saveActivity(act) {
     if (sickOn(act.day)) { toast(SICK_ACT); return; }
@@ -5306,7 +5378,9 @@ var Illus = (function () {
       var ny = new Date().getFullYear(), ys = []; for (var y = ny - 10; y >= ny - 90; y--) ys.push(y);
       return '<h1>Ihr Geburtsjahr</h1><p class="sub">Zustimmen können nur Erwachsene. Wir speichern nur „volljährig: ja“ – nicht das Jahr.</p>' +
         '<label class="f" for="pvY">Ihr Geburtsjahr</label><select id="pvY" data-bind="pv.year"><option value="">Jahr</option>' + ys.map(function (v) { return '<option value="' + v + '"' + (+pv.year === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select>' +
-        '<button class="btn block mt12" data-a="pv-year"' + (pv.year ? '' : ' disabled') + '>Weiter</button>';
+        // A15: unter 18 → dezente rote Meldung direkt am Feld, statt Folgebildschirm
+        '<div id="pvYErr" class="pverr yerr" role="alert"' + (pv.year && !E.parentAdultYear(+pv.year, new Date()) ? '' : ' hidden') + '>Zustimmen können nur Erwachsene. Bitte prüfen Sie das Jahr – oder gehen Sie zurück zur Einrichtung.<br><button class="btn ghost block mt8" data-a="pv-underage">Zurück zur Einrichtung</button></div>' +
+        '<button class="btn block mt12" id="pvYGo" data-a="pv-year"' + (pv.year && E.parentAdultYear(+pv.year, new Date()) ? '' : ' disabled') + (pv.year && !E.parentAdultYear(+pv.year, new Date()) ? ' hidden' : '') + '>Weiter</button>';
     }
     if (step === 'id') {
       return '<h1>Volljährigkeit bestätigen</h1><p class="sub">Freiwillig: Mit dem Online-Ausweis bestätigen Sie, dass Sie volljährig sind. Übermittelt wird nur „volljährig: ja“ – kein Name, kein Foto, keine Ausweisnummer.</p>' +
@@ -5341,11 +5415,17 @@ var Illus = (function () {
         if (ui.ob) ui.ob.draft.verified.adult = false; else { S = E.refuseParentAdult(S).state; save(); }
         return rr();
       }
+      if (ui.ob) pv.yearKept = +pv.year; // nur im Arbeitsspeicher für den Plausibilitätshinweis (A16), nie gespeichert
       pv.year = ''; if (!pvSetVerified({ adult: true })) return rr(); if (ui.ob) ui.ob.step++; rr(); return; // Jahr selbst wird nicht behalten
     }
     if (a === 'pv-id') {
       if (v === 'yes') { if (pvSetVerified({ id: true })) toast('Volljährigkeit bestätigt (simuliert).'); } else pv.idLater = true;
       if (ui.ob) ui.ob.step++; rr(); return;
+    }
+    if (a === 'pv-underage') { // A15: Rückweg aus der Meldung – merkt wie bisher „nicht volljährig“ (kein zweiter Versuch)
+      pv.adultNo = true; pv.year = ''; markDevRefused();
+      if (ui.ob) ui.ob.draft.verified.adult = false; else { S = E.refuseParentAdult(S).state; save(); }
+      if (ui.ob) return pvAction('pv-abort'); return rr(); // im Elternbereich (Simulation) bleibt der Hinweis stehen
     }
     if (a === 'pv-kid' || a === 'pv-abort') {
       if (ui.ob) {
@@ -5417,6 +5497,7 @@ var Illus = (function () {
         '<label class="f" for="obn">Vorname Ihres Kindes</label><input id="obn" type="text" maxlength="20" autocomplete="off" value="' + esc(d.name) + '" data-bind="ob.name" placeholder="z. B. Mia">' +
         birthSelects(d.birthM, d.birthY, 'ob') + '<details class="why"><summary>Warum fragen wir das?</summary><p class="sub">' + WHY_BIRTH + '</p></details>' +
         (d.birthY ? '<p class="sub" style="margin:10px 0 0">Altersklasse: <b>' + esc(d.age) + ' (' + esc(E.JUGEND[d.age]) + ')</b></p>' : '') +
+        (d.birthY && d.pv.yearKept && +d.birthY - d.pv.yearKept < 14 ? '<p class="note warnnote" role="status">Bitte Geburtsjahre prüfen: Zwischen Ihnen und Ihrem Kind liegen weniger als 14 Jahre. Sie können trotzdem weitermachen.</p>' : '') +
         (tooOld ? '<section class="banner info">' + IC.info + '<div>Ab 16 richtet Ihr Kind Fokus11 selbst ein und kann Sie bei Bedarf einladen.</div></section>' :
           '<h3 class="mt16" style="font-size:16px">Wie nutzt ' + esc(d.name.trim() || 'Ihr Kind') + ' Fokus11?</h3>' + deviceChoice(d.device, d.name.trim(), 'ob-device', true) +
           '<p class="note">Jederzeit änderbar. Später aufs eigene Handy umziehen geht per Link – alle Daten wandern mit.</p>' + parentConsentBox(d, d.name));
@@ -5477,7 +5558,7 @@ var Illus = (function () {
       }
     } else if (st === 'privacy') {
       b = '<h1>Fast fertig!</h1><section class="banner info">' + IC.info + '<div><h3>Datenschutz kurz</h3><p style="margin:4px 0 0">Im Prototyp bleibt alles auf diesem Gerät. Schmerzmeldungen und Nachrichten an deine Eltern löschen wir nach ' + E.PAIN_KEEP + ' Tagen, ärztliche Pausen 90 Tage nach dem Ende.</p></div></section>' +
-        '<section class="card loop"><h3>So funktioniert’s</h3><p style="margin:6px 0 0;font-weight:600">Nach dem Training 1 Zahl, manchmal morgens ein kurzer Check → dein Plan passt sich an.</p></section>' +
+        '<section class="card loop"><h3>So funktioniert’s</h3><p style="margin:6px 0 0;font-weight:600">' + LOOP_TXT + '</p></section>' +
         '<section class="card"><h3>Gut zu wissen</h3><p class="sub" style="margin:6px 0 0">Fokus11 ist ein Prototyp und keine medizinische Beratung. Dein Plan ist so gut wie deine Antworten. Hilfe findest du jederzeit oben über „Hilfe“.</p></section>';
       nextLbl = 'Plan erstellen';
     }
@@ -5547,7 +5628,7 @@ var Illus = (function () {
   }
   function demoWinter() {
     for (var a = S.today; a < S.today + 400; a++) { if (E.phaseOf(S, a).id === 'winterpause' && !E.eventsBetween(S, a - 1, a + 1).length) { S.today = a + 2; break; } }
-    save(); ui.tab = 'heute'; render(); toast('Datum vorgespult: Winterpause – erste Woche frei, dann locker, Pausen-Blöcke ab Woche 3.');
+    save(); ui.tab = 'heute'; render(); toast('Datum vorgespult: Winterpause – erste Woche weitgehend frei mit einem lockeren Erholungstag, dann locker, Blöcke ab Woche 3.');
   }
 
   // =====================================================================
@@ -5556,7 +5637,7 @@ var Illus = (function () {
   function getDraft() { return ui.ob ? ui.ob.draft : ui.edit; }
   function rerender() { if (ui.ob) renderOnboarding(); else renderOverlay(); }
   function closeOv() { ui.ovScroll = {}; stopTimer(); ui.run = null; ui.overlay = null; ui.rate = null; ui.flow = null; ui.review = null; ui.pain = null; ui.absence = null; ui.act = null; ui.ev = null; ui.inj = null; ui.clr = null; if (S) render(); else renderOnboarding(); }
-  function startRun(drills, basics) { ui.run = { drills: drills.slice(), i: 0, left: drills[0].min * 60, running: false, status: {}, basics: !!basics }; ui.overlay = 'session'; renderOverlay(); }
+  function startRun(drills, basics) { ui.run = { drills: drills.slice(), i: 0, left: drills[0].min * 60, running: false, status: {}, basics: !!basics, pre: !basics }; ui.overlay = 'session'; renderOverlay(); }
   function apply(r, title) { if (r.state === S && r.changes.length) { toast(r.changes[0].text); return false; } showResult(r, title); return true; }
   function filterFocus(P) { var al = E.fociFor(P.age, P.position).map(function (f) { return f.id; }); P.focus = P.focus.filter(function (f) { return al.indexOf(f) >= 0; }); if (!P.focus.length) P.focus = [al.indexOf('passen') >= 0 ? 'passen' : al[0]]; }
   // R5b: Gerätewechsel (Gerätekarte und – auf dem gemeinsamen Gerät – alter Knopf „Eigenen Zugang einrichten“)
@@ -5586,7 +5667,11 @@ var Illus = (function () {
         if (ui.tab === v && !ui.sub) { ui.scroll[viewKey()] = 0; var m = document.getElementById('main'); if (m) m.scrollTop = 0; }
         if (ui.tab === v && ui.sub) ui.sub = null;
         if (ui.tab !== v && v === 'profil') ui.sub = null;
-        ui.tab = v; ui.overlay = null; ui.foodType = null; render(); break;
+        if (ui.tab !== v && v === 'profil') ui.prevTab = ui.tab;
+        ui.tab = v; ui.overlay = null; ui.foodType = null; ui.heuteDay = null; render(); break;
+      case 'ich-close': ui.sub = null; ui.tab = ui.prevTab && ui.prevTab !== 'profil' ? ui.prevTab : 'heute'; ui.overlay = null; render(); break;
+      case 'heute-day': ui.heuteDay = +v === t ? null : +v; render(); break;
+      case 'heute-back': ui.heuteDay = null; render(); break;
       case 'sub': ui.sub = v || null; ui.scroll[viewKey()] = 0; render(); break;
       case 'psub': ui.psub = v || null; ui.scroll[viewKey()] = 0; render(); break;
       case 'go-sub': ui.tab = 'profil'; ui.sub = v; ui.overlay = null; ui.scroll[viewKey()] = 0; render(); break;
@@ -5609,13 +5694,13 @@ var Illus = (function () {
       case 'notif-set': var ns2 = E.notifSettings(S); ns2[k] = v; S.profile.notif = ns2; save(); render(); break;
       // + Eintragen (2.3)
       case 'open-add': ui.overlay = null; openAdd(v != null ? +v : t); break;
-      case 'add-act': openAct(ui.addDay != null && ui.addDay <= t ? ui.addDay : t, null, v); break;
+      case 'add-act': openAct(ui.addDay != null && ui.addDay <= t ? ui.addDay : t, 'add', v); break;
       case 'add-ev':
-        if (v === 'abwesend') { ui.absence = { type: preview() ? 'urlaub' : null, from: ui.addDay > t ? ui.addDay : t, to: (ui.addDay > t ? ui.addDay : t) + 2, fever: false }; ui.overlay = 'absence'; renderOverlay(); break; }
+        if (v === 'abwesend') { ui.absence = { type: preview() ? 'urlaub' : null, from: ui.addDay > t ? ui.addDay : t, to: (ui.addDay > t ? ui.addDay : t) + 2, fever: false }; ui.absReturn = 'add'; ui.overlay = 'absence'; renderOverlay(); break; }
         // ohne gewählten Tag: nächster Tag ohne Spiel/Turnier vorschlagen (sonst öffnete „Spiel“ am Vortag eines Spiels sofort dessen Bearbeitung)
         var evd = ui.addDay > t ? ui.addDay : t + 1;
         if (!(ui.addDay > t) && (v === 'spiel' || v === 'turnier')) { var g = 0; while (E.eventOn(S, evd) && g++ < 14) evd++; }
-        openEvent(evd, v); break;
+        openEvent(evd, v); ui.evReturn = 'add'; break;
       // Tasche / Kalender / Teamtraining-Ausfall
       case 'open-bag': ui.bagDay = +v; ui.bagReturn = ui.overlay && ui.overlay !== 'bag' ? ui.overlay : null; ui.overlay = 'bag'; ui.ovScroll.bag = 0; renderOverlay(); break;
       case 'bag-tog': S = E.toggleBag(S, ui.bagDay, v).state; save(); renderOverlay(); break;
@@ -5628,7 +5713,7 @@ var Illus = (function () {
       case 'team-unskip': S = E.setTeamSkip(S, +v, false).state; save(); render(); break;
       case 'offer': var of0 = E.replacementOffer(S, +v); S = E.setOffer(S, +v, !(of0 && of0.on)).state; save(); render(); break;
       case 'appt-del': var aid = v; confirmDlg('Termin löschen?', 'Der Plan um diesen Tag wird neu berechnet.', 'Löschen', function () { S = E.removeAppt(S, aid).state; save(); render(); }); break;
-      case 'ev-edit': openEvent(+v, null, true); break;
+      case 'ev-edit': openEvent(+v, null, true); if (ui.ev && ui.dayDetail === +v) ui.evReturn = 'day'; break;
       case 'ev-hall': ui.ev.hall = !ui.ev.hall; renderOverlay(); break;
       case 'open-help': if ($dlg.innerHTML) closeDlg(); if (ui.overlay && ui.overlay !== 'help') ui.helpReturn = ui.overlay; ui.overlay = 'help'; renderOverlay(); break;
       case 'dismiss-chg': if (S.lastChanges) S.lastChanges.dismissed = true; save(); render(); break;
@@ -5683,7 +5768,7 @@ var Illus = (function () {
       case 'drill-skip': nextDrill(true); break;
       case 'drill-other': otherDrill(); break;
       case 'day-other': var dtop = btnTop('[data-a=day-other][data-v="' + v + '"]'); r = E.swapDrill(S, ui.dayDetail, v); if (r.ok) { S = r.state; save(); } ui.daySwap = { id: r.ok ? r.to : v, text: r.changes[0].text }; renderOverlay(); anchorSwap('[data-a=day-other][data-v="' + ui.daySwap.id + '"]', dtop); break;
-      case 'place-toggle': ui.placeOpen = !ui.placeOpen; render(); break;
+      case 'run-go': if (ui.run) { ui.run.pre = false; renderOverlay(); } break;
       case 'place': var c0 = E.placeFor(S, t), nc = { ort: k === 'ort' ? v : c0.ort, people: k === 'people' ? +v : c0.people }; S = E.setPlace(S, t, nc).state; save(); render(); break;
       // after-session rating
       case 'open-rate': openRate(); break;
@@ -5714,7 +5799,7 @@ var Illus = (function () {
         // Vorschau: Schonung nur für diese Sitzung im Arbeitsspeicher (nichts gespeichert, H4)
         if (pr.notSaved) ui.previewPain = { day: t, region: pr.region };
         showResult({ state: pr.state, changes: prev.concat(pr.changes), notSaved: pr.notSaved }, ui.pain.prevTitle ? ui.pain.prevTitle : pr.notSaved ? 'Danke, dass du es sagst' : 'Schmerz gemeldet', 'Danke!', ''); break;
-      case 'open-absence': ui.absence = { type: preview() ? 'urlaub' : null, from: t, to: t + 2, fever: false }; ui.overlay = 'absence'; renderOverlay(); break;
+      case 'open-absence': ui.absReturn = null; ui.absence = { type: preview() ? 'urlaub' : null, from: t, to: t + 2, fever: false }; ui.overlay = 'absence'; renderOverlay(); break;
       case 'abs': ui.absence.type = v; if (v !== 'krank' && ui.absence.to == null) ui.absence.to = ui.absence.from + 2; renderOverlay(); break;
       case 'abs-fever': ui.absence.fever = !ui.absence.fever; renderOverlay(); break;
       case 'abs-quick': ui.absence.from = t; ui.absence.to = v === 'today' ? t : v === '3' ? t + 2 : null; renderOverlay(); break;
@@ -5751,7 +5836,9 @@ var Illus = (function () {
         if (r.state === S) { toast(r.changes[0] ? r.changes[0].text : 'Nicht gespeichert.'); break; }
         ui.ev = null; showResult(r, ee.edit ? 'Gespeichert' : 'Termin gespeichert'); break;
       case 'ev-dur': S = E.setEventDur(S, ui.dayDetail, +v).state; save(); renderOverlay(); toast('Spieldauer gespeichert.'); break;
-      case 'ev-del': var dday = +v; confirmDlg('Termin löschen?', 'Der Plan um diesen Tag wird neu berechnet.', 'Löschen', function () { showResult(E.removeEvent(S, dday), 'Termin gelöscht'); }); break;
+      case 'ev-del': var dday = +v; confirmDlg('Termin löschen?', 'Der Plan um diesen Tag wird neu berechnet.', 'Löschen', function () { var ev0 = E.eventOn(S, dday); if (ev0 && (ev0.kind === 'spiel' || ev0.kind === 'turnier') && dday >= S.today) ui.matchGone = dday; showResult(E.removeEvent(S, dday), 'Termin gelöscht'); }); break;
+      case 'gone-add': ui.matchGone = null; ui.act = null; ui.overlay = 'add'; renderOverlay(); break;
+      case 'gone-no': ui.matchGone = null; render(); break;
       case 'team-off': var tinf = E.info(S, +v); S = E.setTeamOff(S, +v, !tinf.teamOff).state; save(); render(); break;
       // ärztliche Pause
       case 'open-inj': openInj(); break;
@@ -5769,7 +5856,9 @@ var Illus = (function () {
       // navigation
       case 'close-ov':
         if (ui.overlay === 'bag' && ui.bagReturn) { ui.overlay = ui.bagReturn; ui.bagReturn = null; lastOverlay = null; render(); break; }
-        if (ui.overlay === 'help' && ui.helpReturn) { ui.overlay = ui.helpReturn; ui.helpReturn = null; lastOverlay = null; if (S) render(); else renderOverlay(); break; } ui.helpReturn = null; if (ui.overlay === 'act' && ui.act && ui.act.returnTo) { ui.overlay = ui.act.returnTo; ui.act = null; lastOverlay = null; renderOverlay(); break; } closeOv(); break;
+        if (ui.overlay === 'event' && ui.evReturn) { var er = ui.evReturn; ui.evReturn = null; ui.ev = null; ui.overlay = er; renderOverlay(); break; }
+        if (ui.overlay === 'absence' && ui.absReturn) { ui.absReturn = null; ui.absence = null; ui.overlay = 'add'; renderOverlay(); break; }
+        if (ui.overlay === 'help' && ui.helpReturn) { ui.overlay = ui.helpReturn; ui.helpReturn = null; lastOverlay = null; if (S) render(); else renderOverlay(); break; } ui.helpReturn = null; if (ui.overlay === 'act' && ui.act && ui.act.returnTo) { var rt = ui.act.returnTo; ui.overlay = rt; ui.act = null; if (rt !== 'add') lastOverlay = null; renderOverlay(); break; } closeOv(); break;
       case 'to-week': ui.overlay = null; ui.tab = 'woche'; ui.weekView = 'woche'; ui.view = 'player'; render(); break;
       case 'go-month': ui.tab = 'woche'; ui.weekView = 'monat'; ui.monthOff = 0; render(); break;
       case 'day': ui.dayDetail = +v; ui.daySwap = null; ui.ovScroll.day = 0; ui.overlay = 'day'; renderOverlay(); break;
@@ -5778,9 +5867,13 @@ var Illus = (function () {
         var row = document.getElementById('wr-' + ab0); if (row) { scrollMainTo(row); row.classList.add('hl'); setTimeout(function () { row.classList.remove('hl'); }, 1200); row.focus({ preventScroll: true }); }
         break;
       case 'show-past': ui.showPast = true; render(); break;
-      case 'jump-phase': var phc = document.getElementById('ph-' + v); if (phc && phc.closest('details')) phc.closest('details').open = true; if (phc) scrollMainTo(phc); break;
-      case 'wview': ui.weekView = v; ui.monthOff = 0; render(); break;
-      case 'month': ui.monthOff = v === '0' ? 0 : ui.monthOff + +v; render(); break;
+      case 'jump-phase': var phc = document.getElementById('ph-' + v); if (phc && phc.closest('details')) phc.closest('details').open = true; if (phc) scrollMainTo(phc, 84); ui.phSel = v; document.querySelectorAll('.tlbar button').forEach(function (b) { b.classList.toggle('sel', b.getAttribute('data-v') === v); }); break;
+      case 'wview': ui.weekView = v; ui.monthOff = 0; ui.monthSel = null; ui.weekOff = 0; render(); break;
+      case 'mday': ui.monthSel = ui.monthSel === +v ? null : +v; render(); break;
+      case 'mday-close': ui.monthSel = null; render(); break;
+      case 'week': ui.weekOff = v === '0' ? 0 : Math.max(-4, Math.min(12, (ui.weekOff || 0) + +v)); ui.scroll[viewKey()] = 0; render(); break;
+      case 'heute-wk': ui.heuteWk = v === '0' ? 0 : Math.max(-4, Math.min(12, (ui.heuteWk || 0) + +v)); render(); break;
+      case 'month': ui.monthSel = null; ui.monthOff = v === '0' ? 0 : ui.monthOff + +v; render(); break;
       case 'bgoal': S.profile.breakGoals[k] = v; save(); render(); toast('Pausen-Ziel gespeichert.'); break;
       // Essen
       case 'food': ui.foodType = v; render(); break;
@@ -5788,7 +5881,7 @@ var Illus = (function () {
       case 'food-tog':
         var fd = S.food[t] = Object.assign({}, S.food[t] || {}), ml = fd[ui.meal] = Object.assign({}, fd[ui.meal] || {});
         if (ml[v]) delete ml[v]; else ml[v] = 1; save(); render(); break;
-      case 'rtag': ui.recipeTag = v; render(); break;
+      case 'rtag': var hs0 = document.querySelector('.hscroll'), hl0 = hs0 ? hs0.scrollLeft : 0; ui.recipeTag = v; render(); var hs1 = document.querySelector('.hscroll'); if (hs1) hs1.scrollLeft = hl0; break; // A13: Leiste bleibt stehen
       case 'recipe': ui.recipe = v; ui.overlay = 'recipe'; renderOverlay(); break;
       case 'toggle-parent': ui.parentView = !ui.parentView; render(); break;
       case 'share': S.profile.share = Object.assign({}, S.profile.share); S.profile.share[v] = !S.profile.share[v]; save(); render(); break;
@@ -5867,7 +5960,7 @@ var Illus = (function () {
       case 'ob-demo': S = demoState(); save(); ui.ob = null; ui.tab = 'heute'; render(); toast('Beispiel: Leon, U15 – schau dich um!'); break;
       case 'ob-start': ui.ob.step = 1; renderOnboarding(); focusOb(); break;
       case 'ob-role': var dr = ui.ob.draft; if (dr.role !== v) { dr.verified = { contact: false, adult: false, id: false }; var keepNo = dr.pv.adultNo; dr.pv = newPv(); dr.pv.adultNo = keepNo; } dr.role = v; ui.ob.step = OB_FIRST; renderOnboarding(); focusOb(); break;
-      case 'pv-send': case 'pv-code': case 'pv-year': case 'pv-id': case 'pv-kid': case 'pv-abort': pvAction(a, v); break;
+      case 'pv-send': case 'pv-code': case 'pv-year': case 'pv-underage': case 'pv-id': case 'pv-kid': case 'pv-abort': pvAction(a, v); break;
       case 'ob-child': var dc = ui.ob.draft; dc.childTurn = true; dc.invited = true; ui.ob.step = OB_FIRST; renderOnboarding(); focusOb(); toast(dc.device === 'shared' ? 'Jetzt ist ' + dc.name + ' dran.' : 'Jetzt auf dem Handy von ' + dc.name + ' (simuliert).'); break;
       case 'ob-device': ui.ob.draft.device = v; renderOnboarding(); break;
       case 'ob-st': var dst = ui.ob.draft.st, nv0 = stValue(k, v); dst[k] = dst[k] === nv0 ? null : nv0; renderOnboarding(); keepFocus('[data-a=ob-st][data-k=' + k + '][data-v="' + v + '"]'); break;
@@ -5892,7 +5985,8 @@ var Illus = (function () {
     var b = e.target.getAttribute && e.target.getAttribute('data-bind'); if (!b) return;
     if (b === 'newHeight') { ui.newHeight = e.target.value; return; }
     if (b === 'clr.praxis' && ui.clr) { ui.clr.praxis = e.target.value; var sb = document.querySelector('[data-a=clr-save]'); if (sb) sb.disabled = !(ui.clr.praxis.trim() && (ui.view === 'parent' || ui.clr.painFree != null)); return; }
-    if (b.indexOf('season.') === 0 && ui.edit && ui.edit.season) { var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(e.target.value); if (m) ui.edit.season[b.slice(7)] = m[1] + '-' + m[2]; return; }
+    if (b.indexOf('seasonend.') === 0 && ui.edit && ui.edit.season) { var me = /^(\d{4})-(\d{2})-(\d{2})$/.exec(e.target.value); if (me) { var nd = new Date(+me[1], +me[2] - 1, +me[3] + 1); ui.edit.season[b.slice(10)] = pad(nd.getMonth() + 1) + '-' + pad(nd.getDate()); renderOverlay(); } return; }
+    if (b.indexOf('season.') === 0 && ui.edit && ui.edit.season) { var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(e.target.value); if (m) { ui.edit.season[b.slice(7)] = m[1] + '-' + m[2]; renderOverlay(); } return; }
     if ((b === 'ob.birthM' || b === 'ob.birthY') && ui.ob) {
       var dd = ui.ob.draft; dd[b.slice(3)] = e.target.value;
       if (dd.birthY && !dd.ageManual) dd.age = E.ageClassFor(+dd.birthY, new Date());
@@ -5905,7 +5999,7 @@ var Illus = (function () {
     }
     if (b === 'ed.name' && ui.edit) { ui.edit.name = e.target.value; return; }
     if (b.indexOf('ev.') === 0 && ui.ev) { ui.ev[b.slice(3)] = e.target.value; return; }
-    if (b.indexOf('pv.') === 0) { var pvb = pvState(); pvb[b.slice(3)] = e.target.value; if (b === 'pv.year') { var yb = document.querySelector('[data-a=pv-year]'); if (yb) yb.disabled = !e.target.value; } return; }
+    if (b.indexOf('pv.') === 0) { var pvb = pvState(); pvb[b.slice(3)] = e.target.value; if (b === 'pv.year') { var yb = document.getElementById('pvYGo'), ye = document.getElementById('pvYErr'), okY = !!e.target.value && E.parentAdultYear(+e.target.value, new Date()); if (yb) { yb.disabled = !okY; yb.hidden = !!e.target.value && !okY; } if (ye) ye.hidden = !e.target.value || okY; } return; }
     if (b.indexOf('ob.') === 0 && ui.ob) {
       ui.ob.draft[b.slice(3)] = e.target.value;
       if (b === 'ob.name') { var dn = ui.ob.draft, n = document.getElementById('obNext'); if (n) n.disabled = obSteps(dn)[ui.ob.step] === 'p-family' ? !(e.target.value.trim() && dn.birthM && dn.birthY && dn.pAgree && dn.pHealth && draftU16(dn) && !!dn.device && dn.verified.contact && dn.verified.adult) : !(e.target.value.trim() && dn.birthM && dn.birthY); }
@@ -5919,6 +6013,14 @@ var Illus = (function () {
     if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button' && e.target.tagName !== 'BUTTON' && e.target.hasAttribute('data-a')) { e.preventDefault(); e.target.click(); return; }
     if (e.key === 'Enter' && e.target && e.target.id === 'nh') { var btn = document.querySelector('[data-a=add-height]'); if (btn) btn.click(); }
   });
+
+  // A14: nach Tippen (Zeiger) kein hängender Fokusrahmen an Haken; Tastatur-Nutzer behalten ihn
+  document.addEventListener('pointerdown', function () { document.body.classList.add('ptr'); }, true);
+  document.addEventListener('keydown', function () { document.body.classList.remove('ptr'); }, true);
+  // A6: nach Rückkehr (z. B. aus der Kalender-Datei) Fokus lösen und Seite zurücksetzen – kein erzwungener Zoom
+  function unzoom() { try { if (document.activeElement && document.activeElement.blur && document.activeElement.tagName !== 'BODY') document.activeElement.blur(); if (window.visualViewport && window.visualViewport.scale > 1.01) window.scrollTo(0, 0); } catch (e) { } }
+  window.addEventListener('pageshow', unzoom); window.addEventListener('focus', unzoom);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) unzoom(); });
 
   render();
   if (migrated === 'ok') toast('Prototyp aktualisiert: Spiele sind jetzt Termine im Kalender.');
